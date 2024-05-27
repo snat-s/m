@@ -1,0 +1,6 @@
+*.png
+__pycache__
+venv/
+images/
+monalisa/
+.ipynb_checkpoints/
