@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Image Bounding Box Editor</title>
+    <style>
+        body {
+           
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .corner {
+            width: 10px;
+            height: 10px;
+            background-color: blue;
+            position: absolute;
+            border-radius: 50%;
+            cursor: move;
+        }
+
+        #canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 70vh;
+            margin: 10px 0;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            border: 1px solid #000;
+        }
+
+        #canvas {
+            cursor: crosshair;
+        }
+
+        #ocrInput {
+            width: 100%;
+            height: 100px;
+            margin-top: 10px;
+        }
+
+        button {
+            margin: 10px 5px;
+            padding: 5px 10px;
+        }
+
+        #contextMenu {
+            display: none;
+            position: fixed;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            padding: 5px;
+            z-index: 1000;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #contextMenu button {
+            display: block;
+            width: 100%;
+            padding: 5px;
+            text-align: left;
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+
+        #contextMenu button:hover {
+            background-color: #e9e9e9;
+        }
+
+        #navigation {
+            margin-top: 10px;
+        }
+
+        #captionModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>bbox</h1>
+        <input type="file" id="imageUpload" accept="image/*" multiple>
+        <div id="canvas-wrapper">
+            <div id="canvas-container">
+                <canvas id="canvas"></canvas>
+            </div>
+        </div>
+        <p>Click and drag to draw boxes. Right-click on a box to delete. Click on a box to edit its text.</p>
+        <div id="navigation">
+            <button id="prevImage">Previous Image</button>
+            <span id="imageInfo">No images uploaded</span>
+            <button id="nextImage">Next Image</button>
+        </div>
+        <textarea id="ocrInput" placeholder="Paste OCR JSON here"></textarea>
+        <br>
+        <button id="loadOcr">Load OCR Data</button>
+        <button id="exportData">Export All Data</button>
+        <button id="clearAll">Clear Current Image</button>
+    </div>
+
+    <div id="contextMenu">
+        <button id="inputBox">Input Caption</button>
+        <button id="deleteBox">Delete Box</button>
+        <button id="captionBox">Auto Caption</button>
+    </div>
+
+    <div id="captionModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p>Generating caption...</p>
+            <div id="captionResult"></div>
+            <button id="acceptCaption">Accept</button>
+            <button id="cancelCaption">Cancel</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvas-container');
+        const imageUpload = document.getElementById('imageUpload');
+        const ocrInput = document.getElementById('ocrInput');
+        const loadOcrButton = document.getElementById('loadOcr');
+        const exportDataButton = document.getElementById('exportData');
+        const contextMenu = document.getElementById('contextMenu');
+        const deleteBoxButton = document.getElementById('deleteBox');
+        const clearAllButton = document.getElementById('clearAll');
+        const prevImageButton = document.getElementById('prevImage');
+        const nextImageButton = document.getElementById('nextImage');
+        const imageInfo = document.getElementById('imageInfo');
+
+
+        const captionModal = document.getElementById('captionModal');
+        const captionResult = document.getElementById('captionResult');
+        const acceptCaptionButton = document.getElementById('acceptCaption');
+        const cancelCaptionButton = document.getElementById('cancelCaption');
+        const closeModalSpan = document.getElementsByClassName('close')[0];
+        const captionBoxButton = document.getElementById('captionBox');
+        const inputCaption = document.getElementById('inputBox');
+
+        let isDrawing = false;
+        let startX, startY;
+        let images = [];
+        let currentImageIndex = -1;
+        let selectedBox = null;
+        let scale = 1;
+        let isDraggingCorner = false;
+        let draggedCornerIndex = -1;
+
+        const captioner = await pipeline('image-to-text', 'Xenova/trocr-small-handwritten');
+
+        function drawBoxes() {
+            if (currentImageIndex === -1) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(images[currentImageIndex].image, 0, 0);
+
+            images[currentImageIndex].boxes.forEach((box, index) => {
+                ctx.strokeStyle = box === selectedBox ? 'blue' : 'red';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(box[0], box[1]);
+                for (let i = 2; i < box.length; i += 2) {
+                    ctx.lineTo(box[i], box[i + 1]);
+                }
+                ctx.closePath();
+                ctx.stroke();
+
+                if (box.label) {
+                    const boxWidth = Math.max(box[2], box[4], box[6]) - Math.min(box[0], box[2], box[4], box[6]);
+                    const boxHeight = Math.max(box[3], box[5], box[7]) - Math.min(box[1], box[3], box[5], box[7]);
+                    const fontSize = Math.max(12, Math.min(boxWidth / 15, boxHeight / 8)); // Adjust these values as needed
+
+                    ctx.font = `${fontSize}px Arial`;
+                    const textMetrics = ctx.measureText(box.label);
+                    const textWidth = textMetrics.width;
+                    const textHeight = fontSize;
+
+                    const padding = 4;
+                    const bgX = box[0];
+                    const bgY = box[1] - textHeight - padding * 2;
+                    const bgWidth = textWidth + padding * 2;
+                    const bgHeight = textHeight + padding * 2;
+
+                    // Draw background
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.fillRect(bgX, bgY, bgWidth, bgHeight);
+
+                    // Draw text
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(box.label, bgX + padding, box[1] - padding);
+                }
+            });
+            updateOcrJson();
+        }
+
+        function updateImageInfo() {
+            if (images.length === 0) {
+                imageInfo.textContent = "No images uploaded";
+            } else {
+                imageInfo.textContent = `Image ${currentImageIndex + 1} of ${images.length}`;
+            }
+            prevImageButton.disabled = currentImageIndex <= 0;
+            nextImageButton.disabled = currentImageIndex >= images.length - 1;
+        }
+
+        function resizeCanvas() {
+            if (currentImageIndex === -1) return;
+            const img = images[currentImageIndex].image;
+            const containerWidth = canvasContainer.clientWidth;
+            scale = containerWidth / img.width;
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.style.transform = `scale(${scale})`;
+            canvas.style.transformOrigin = 'top left';
+            drawBoxes();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        imageUpload.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            const startIndex = images.length;
+
+            const loadImage = (file) => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        images.push({ image: img, boxes: [] });
+                        resolve();
+                    };
+                    img.src = URL.createObjectURL(file);
+                });
+            };
+
+            Promise.all(files.map(loadImage)).then(() => {
+                if (currentImageIndex === -1 && images.length > 0) {
+                    currentImageIndex = 0;
+                }
+                if (images.length > 0) {
+                    currentImageIndex = images.length - 1;
+                    resizeCanvas();
+                    updateImageInfo();
+                    drawBoxes();
+                }
+            });
+        });
+        
+        inputCaption.addEventListener('click', () => {
+            const input = prompt('Enter text for this box:', selectedBox.label || '');
+                if (input !== null) {
+                    selectedBox.label = input;
+                    drawBoxes();
+                }
+                contextMenu.style.display = 'none';
+        });
+
+        loadOcrButton.addEventListener('click', () => {
+            if (currentImageIndex === -1) return;
+            try {
+                const ocrData = JSON.parse(ocrInput.value);
+                if (ocrData['<OCR_WITH_REGION>'] && ocrData['<OCR_WITH_REGION>'].quad_boxes) {
+                    images[currentImageIndex].boxes = ocrData['<OCR_WITH_REGION>'].quad_boxes.map((box, index) => {
+                        const label = ocrData['<OCR_WITH_REGION>'].labels[index];
+                        return Object.assign(box, { label });
+                    });
+                    drawBoxes();
+                }
+            } catch (error) {
+                console.error('Error parsing OCR data:', error);
+                alert('Error parsing OCR data. Please check the format.');
+            }
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 2 || currentImageIndex === -1) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / scale;
+            const y = (e.clientY - rect.top) / scale;
+
+            selectedBox = images[currentImageIndex].boxes.find(box => isPointInBox(x, y, box));
+            if (selectedBox) {
+                const input = prompt('Enter text for this box:', selectedBox.label || '');
+                if (input !== null) {
+                    selectedBox.label = input;
+                    drawBoxes();
+                }
+            } else {
+                isDrawing = true;
+                [startX, startY] = [x, y];
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing || currentImageIndex === -1) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / scale;
+            const y = (e.clientY - rect.top) / scale;
+
+            drawBoxes();
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(startX, startY, x - startX, y - startY);
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (!isDrawing || currentImageIndex === -1) return;
+
+            isDrawing = false;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / scale;
+            const y = (e.clientY - rect.top) / scale;
+
+            images[currentImageIndex].boxes.push([startX, startY, x, startY, x, y, startX, y]);
+            drawBoxes();
+        });
+
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (currentImageIndex === -1) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / scale;
+            const y = (e.clientY - rect.top) / scale;
+
+            selectedBox = images[currentImageIndex].boxes.find(box => isPointInBox(x, y, box));
+            if (selectedBox) {
+                showContextMenu(e.clientX, e.clientY);
+            }
+        });
+
+        function showContextMenu(x, y) {
+            contextMenu.style.display = 'block';
+
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const menuWidth = contextMenu.offsetWidth;
+            const menuHeight = contextMenu.offsetHeight;
+
+            let left = x;
+            let top = y;
+
+            if (x + menuWidth > viewportWidth) {
+                left = viewportWidth - menuWidth;
+            }
+
+            if (y + menuHeight > viewportHeight) {
+                top = viewportHeight - menuHeight;
+            }
+
+            contextMenu.style.left = `${left}px`;
+            contextMenu.style.top = `${top}px`;
+        }
+
+        deleteBoxButton.addEventListener('click', () => {
+            if (selectedBox && currentImageIndex !== -1) {
+                images[currentImageIndex].boxes = images[currentImageIndex].boxes.filter(box => box !== selectedBox);
+                selectedBox = null;
+                drawBoxes();
+            }
+            contextMenu.style.display = 'none';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!contextMenu.contains(e.target)) {
+                contextMenu.style.display = 'none';
+            }
+        });
+
+        function isPointInBox(x, y, box) {
+            let inside = false;
+            for (let i = 0, j = box.length - 2; i < box.length; i += 2) {
+                const xi = box[i], yi = box[i + 1];
+                const xj = box[j], yj = box[j + 1];
+
+                const intersect = ((yi > y) !== (yj > y))
+                    && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+                j = i;
+            }
+            return inside;
+        }
+
+        function exportData() {
+            const exportData = images.map(img => ({
+                "<OCR_WITH_REGION>": {
+                    "quad_boxes": img.boxes.map(box => box.slice(0, 8)),
+                    "labels": img.boxes.map(box => box.label || "")
+                }
+            }));
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "bounding_boxes_export.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        exportDataButton.addEventListener('click', exportData);
+
+        function clearAll() {
+            if (currentImageIndex !== -1) {
+                images[currentImageIndex].boxes = [];
+                drawBoxes();
+            }
+        }
+
+        clearAllButton.addEventListener('click', clearAll);
+
+        prevImageButton.addEventListener('click', () => {
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                resizeCanvas();
+                updateImageInfo();
+            }
+        });
+
+        nextImageButton.addEventListener('click', () => {
+            if (currentImageIndex < images.length - 1) {
+                currentImageIndex++;
+                resizeCanvas();
+                updateImageInfo();
+            }
+        });
+        captionBoxButton.addEventListener('click', async () => {
+            if (selectedBox && currentImageIndex !== -1 && captioner) {
+                captionModal.style.display = 'block';
+                captionResult.textContent = 'Generating caption...';
+
+                try {
+                    const img = images[currentImageIndex].image;
+                    const [x1, y1, x2, y2] = [
+                        Math.min(selectedBox[0], selectedBox[4]),
+                        Math.min(selectedBox[1], selectedBox[5]),
+                        Math.max(selectedBox[2], selectedBox[6]),
+                        Math.max(selectedBox[3], selectedBox[7])
+                    ];
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = x2 - x1;
+                    canvas.height = y2 - y1;
+                    ctx.drawImage(img, x1, y1, x2 - x1, y2 - y1, 0, 0, canvas.width, canvas.height);
+
+                    // Get the image data as a Blob
+                    const blob = await new Promise(resolve => {
+                        canvas.toBlob(blob => {
+                            resolve(new File([blob], 'image.jpg', { type: 'image/jpeg' }));
+                        }, 'image/jpeg', 0.9);
+                    });
+
+                    const imageDataUrl = canvas.toDataURL('image/jpeg');
+                    console.log("Image data URL created, calling captioner...");
+                    console.log(blob, captioner);
+                    // const debugWindow = window.open();
+                    // debugWindow.document.write('<img src="' + imageDataUrl + '" />');
+                    const caption = await captioner(imageDataUrl);
+
+                    captionResult.textContent = caption[0].generated_text;
+                } catch (error) {
+                    console.error('Error generating caption:', error);
+                    captionResult.textContent = 'Error generating caption. Please try again.';
+                }
+            } else if (!captioner) {
+                alert('Captioning model is not initialized. Please try reloading the page.');
+            }
+            contextMenu.style.display = 'none';
+        });
+
+        acceptCaptionButton.addEventListener('click', () => {
+            if (selectedBox) {
+                selectedBox.label = captionResult.textContent;
+                drawBoxes();
+            }
+            captionModal.style.display = 'none';
+        });
+
+        cancelCaptionButton.addEventListener('click', () => {
+            captionModal.style.display = 'none';
+        });
+
+        closeModalSpan.onclick = function () {
+            captionModal.style.display = 'none';
+        }
+
+        window.onclick = function (event) {
+            if (event.target == captionModal) {
+                captionModal.style.display = 'none';
+            }
+        }
+        function updateOcrJson() {
+            if (currentImageIndex === -1) return;
+            
+            const ocrData = {
+                "<OCR_WITH_REGION>": {
+                    "quad_boxes": images[currentImageIndex].boxes.map(box => box.slice(0, 8)),
+                    "labels": images[currentImageIndex].boxes.map(box => box.label || "")
+                }
+            };
+
+            ocrInput.value = JSON.stringify(ocrData, null, 2);
+        }
+
+        updateImageInfo();
+    </script>
+</body>
+
+</html>
