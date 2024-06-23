@@ -7,7 +7,7 @@
     <title>Multi-Image Bounding Box Editor</title>
     <style>
         body {
-           
+
             margin: 0;
             padding: 20px;
             background-color: #f0f0f0;
@@ -139,6 +139,7 @@
         <br>
         <button id="loadOcr">Load OCR Data</button>
         <button id="exportData">Export All Data</button>
+        <button id="exportText">Export Only Text</button>
         <button id="clearAll">Clear Current Image</button>
     </div>
 
@@ -183,6 +184,8 @@
         const closeModalSpan = document.getElementsByClassName('close')[0];
         const captionBoxButton = document.getElementById('captionBox');
         const inputCaption = document.getElementById('inputBox');
+        const exportTextButton = document.getElementById('exportText');
+
 
         let isDrawing = false;
         let startX, startY;
@@ -193,7 +196,7 @@
         let isDraggingCorner = false;
         let draggedCornerIndex = -1;
 
-        const captioner = await pipeline('image-to-text', 'Xenova/trocr-small-handwritten');
+        const captioner = await pipeline('image-to-text', 'Xenova/trocr-base-handwritten');
 
         function drawBoxes() {
             if (currentImageIndex === -1) return;
@@ -238,6 +241,17 @@
                 }
             });
             updateOcrJson();
+        }
+
+        function exportText() {
+            const textData = images.map(img => img.boxes.map(box => box.label || "").join(" ")).join("\n");
+            const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(textData);
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "bounding_boxes_text.txt");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
         }
 
         function updateImageInfo() {
@@ -291,14 +305,14 @@
                 }
             });
         });
-        
+
         inputCaption.addEventListener('click', () => {
             const input = prompt('Enter text for this box:', selectedBox.label || '');
-                if (input !== null) {
-                    selectedBox.label = input;
-                    drawBoxes();
-                }
-                contextMenu.style.display = 'none';
+            if (input !== null) {
+                selectedBox.label = input;
+                drawBoxes();
+            }
+            contextMenu.style.display = 'none';
         });
 
         loadOcrButton.addEventListener('click', () => {
@@ -469,6 +483,7 @@
                 updateImageInfo();
             }
         });
+
         captionBoxButton.addEventListener('click', async () => {
             if (selectedBox && currentImageIndex !== -1 && captioner) {
                 captionModal.style.display = 'block';
@@ -484,9 +499,30 @@
                     ];
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    canvas.width = x2 - x1;
-                    canvas.height = y2 - y1;
-                    ctx.drawImage(img, x1, y1, x2 - x1, y2 - y1, 0, 0, canvas.width, canvas.height);
+
+                    // Set maximum dimensions for the resized image
+                    const MAX_WIDTH = 300;
+                    const MAX_HEIGHT = 128;
+
+                    // Calculate aspect ratio
+                    const aspectRatio = (x2 - x1) / (y2 - y1);
+
+                    // Determine new dimensions while maintaining aspect ratio
+                    let newWidth, newHeight;
+                    if (aspectRatio > 1) {
+                        newWidth = MAX_WIDTH;
+                        newHeight = Math.round(MAX_WIDTH / aspectRatio);
+                    } else {
+                        newHeight = MAX_HEIGHT;
+                        newWidth = Math.round(MAX_HEIGHT * aspectRatio);
+                    }
+
+                    // Set canvas size to the new dimensions
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+
+                    // Draw the resized image onto the canvas
+                    ctx.drawImage(img, x1, y1, x2 - x1, y2 - y1, 0, 0, newWidth, newHeight);
 
                     // Get the image data as a Blob
                     const blob = await new Promise(resolve => {
@@ -496,10 +532,10 @@
                     });
 
                     const imageDataUrl = canvas.toDataURL('image/jpeg');
-                    console.log("Image data URL created, calling captioner...");
+                    console.log("Resized image data URL created, calling captioner...");
                     console.log(blob, captioner);
-                    // const debugWindow = window.open();
-                    // debugWindow.document.write('<img src="' + imageDataUrl + '" />');
+                    //const debugWindow = window.open();
+                    //debugWindow.document.write('<img src="' + imageDataUrl + '" />');
                     const caption = await captioner(imageDataUrl);
 
                     captionResult.textContent = caption[0].generated_text;
@@ -536,7 +572,7 @@
         }
         function updateOcrJson() {
             if (currentImageIndex === -1) return;
-            
+
             const ocrData = {
                 "<OCR_WITH_REGION>": {
                     "quad_boxes": images[currentImageIndex].boxes.map(box => box.slice(0, 8)),
@@ -546,6 +582,8 @@
 
             ocrInput.value = JSON.stringify(ocrData, null, 2);
         }
+
+        exportTextButton.addEventListener('click', exportText);
 
         updateImageInfo();
     </script>
