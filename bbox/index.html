@@ -117,6 +117,15 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        #fontSizeSlider {
+            width: 200px;
+            margin: 10px 0;
+        }
+
+        #fontSizeLabel {
+            margin-left: 10px;
+        }
     </style>
 </head>
 
@@ -134,6 +143,11 @@
             <button id="prevImage">Previous Image</button>
             <span id="imageInfo">No images uploaded</span>
             <button id="nextImage">Next Image</button>
+        </div>
+        <div>
+            <label for="fontSizeSlider">Font Size: </label>
+            <input type="range" id="fontSizeSlider" min="10" max="100" value="40">
+            <span id="fontSizeLabel">40px</span>
         </div>
         <textarea id="ocrInput" placeholder="Paste OCR JSON here"></textarea>
         <br>
@@ -175,8 +189,8 @@
         const prevImageButton = document.getElementById('prevImage');
         const nextImageButton = document.getElementById('nextImage');
         const imageInfo = document.getElementById('imageInfo');
-
-
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const fontSizeLabel = document.getElementById('fontSizeLabel');
         const captionModal = document.getElementById('captionModal');
         const captionResult = document.getElementById('captionResult');
         const acceptCaptionButton = document.getElementById('acceptCaption');
@@ -186,6 +200,10 @@
         const inputCaption = document.getElementById('inputBox');
         const exportTextButton = document.getElementById('exportText');
 
+        let fontSize = 40;
+        let cornerRadius = 24;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
 
         let isDrawing = false;
         let startX, startY;
@@ -196,7 +214,31 @@
         let isDraggingCorner = false;
         let draggedCornerIndex = -1;
 
-        const captioner = await pipeline('image-to-text', 'Xenova/trocr-base-handwritten');
+        let captioner = null;
+        let captionerLoading = false;
+
+        const colors = {
+            primary: 'black',    
+            secondary: '#2ecc71',  // Emerald green
+            highlight: '#e74c3c',  // Soft red
+            text: '#34495e'        // Dark blue-gray
+        };
+
+        async function loadCaptioner() {
+            if (!captioner && !captionerLoading) {
+                captionerLoading = true;
+                try {
+                    captioner = await pipeline('image-to-text', 'Xenova/trocr-base-handwritten');
+                    console.log('Captioner loaded successfully');
+                } catch (error) {
+                    console.error('Error loading captioner:', error);
+                } finally {
+                    captionerLoading = false;
+                }
+            }
+            return captioner;
+        }
+        loadCaptioner();
 
         function drawBoxes() {
             if (currentImageIndex === -1) return;
@@ -205,20 +247,28 @@
             ctx.drawImage(images[currentImageIndex].image, 0, 0);
 
             images[currentImageIndex].boxes.forEach((box, index) => {
-                ctx.strokeStyle = box === selectedBox ? 'blue' : 'red';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = box === selectedBox ? colors.highlight : colors.primary;
+                ctx.lineWidth = 10;
                 ctx.beginPath();
                 ctx.moveTo(box[0], box[1]);
+
                 for (let i = 2; i < box.length; i += 2) {
                     ctx.lineTo(box[i], box[i + 1]);
                 }
                 ctx.closePath();
                 ctx.stroke();
 
+                for (let i = 0; i < box.length; i += 2) {
+                    ctx.fillStyle = colors.primary;
+                    ctx.beginPath();
+                    ctx.arc(box[i], box[i + 1], cornerRadius, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
                 if (box.label) {
                     const boxWidth = Math.max(box[2], box[4], box[6]) - Math.min(box[0], box[2], box[4], box[6]);
                     const boxHeight = Math.max(box[3], box[5], box[7]) - Math.min(box[1], box[3], box[5], box[7]);
-                    const fontSize = Math.max(12, Math.min(boxWidth / 15, boxHeight / 8)); // Adjust these values as needed
+                    //Math.max(32, Math.min(boxWidth / 2, boxHeight / 8)); // Adjust these values as needed
 
                     ctx.font = `${fontSize}px Arial`;
                     const textMetrics = ctx.measureText(box.label);
@@ -231,11 +281,10 @@
                     const bgWidth = textWidth + padding * 2;
                     const bgHeight = textHeight + padding * 2;
 
-                    // Draw background
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                     ctx.fillRect(bgX, bgY, bgWidth, bgHeight);
 
-                    // Draw text
+
                     ctx.fillStyle = 'black';
                     ctx.fillText(box.label, bgX + padding, box[1] - padding);
                 }
@@ -332,47 +381,116 @@
             }
         });
 
+        function animateCorner(box, cornerIndex, x, y) {
+            const originalX = box[cornerIndex];
+            const originalY = box[cornerIndex + 1];
+            const animationDuration = 200; // ms
+            const startTime = Date.now();
+
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / animationDuration, 1);
+                const easeProgress = 0.5 - 0.5 * Math.cos(progress * Math.PI);
+
+                const currentX = originalX + (x - originalX) * easeProgress;
+                const currentY = originalY + (y - originalY) * easeProgress;
+
+                box[cornerIndex] = currentX;
+                box[cornerIndex + 1] = currentY;
+
+                drawBoxes();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    box[cornerIndex] = originalX;
+                    box[cornerIndex + 1] = originalY;
+                    drawBoxes();
+                }
+            }
+
+            animate();
+        }
+
         canvas.addEventListener('mousedown', (e) => {
             if (e.button === 2 || currentImageIndex === -1) return;
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left) / scale;
             const y = (e.clientY - rect.top) / scale;
 
-            selectedBox = images[currentImageIndex].boxes.find(box => isPointInBox(x, y, box));
-            if (selectedBox) {
-                const input = prompt('Enter text for this box:', selectedBox.label || '');
-                if (input !== null) {
-                    selectedBox.label = input;
-                    drawBoxes();
+            let cornerFound = false;
+            for (let box of images[currentImageIndex].boxes) {
+                for (let i = 0; i < box.length; i += 2) {
+                    const dx = x - box[i];
+                    const dy = y - box[i + 1];
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance <= cornerRadius) {
+                        // console.log("Entering jello world at corner", i / 2);
+                        isDraggingCorner = true;
+                        draggedCornerIndex = i;
+                        selectedBox = box;
+
+                        // Store offset for smoother dragging
+                        dragOffsetX = dx;
+                        dragOffsetY = dy;
+
+                        cornerFound = true;
+                        break;
+                    }
                 }
-            } else {
-                isDrawing = true;
-                [startX, startY] = [x, y];
+                if (cornerFound) break;
             }
+
+            if (!cornerFound) {
+                selectedBox = images[currentImageIndex].boxes.find(box => isPointInBox(x, y, box));
+                if (selectedBox) {
+                    const input = prompt('Enter text for this box:', selectedBox.label || '');
+                    if (input !== null) {
+                        selectedBox.label = input;
+                    }
+                } else {
+                    isDrawing = true;
+                    [startX, startY] = [x, y];
+                }
+            }
+
+            drawBoxes();
         });
 
         canvas.addEventListener('mousemove', (e) => {
-            if (!isDrawing || currentImageIndex === -1) return;
+            if (currentImageIndex === -1) return;
 
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left) / scale;
             const y = (e.clientY - rect.top) / scale;
 
-            drawBoxes();
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(startX, startY, x - startX, y - startY);
+            if (isDraggingCorner && selectedBox) {
+                // This is where you move corners
+                selectedBox[draggedCornerIndex] = x - dragOffsetX;
+                selectedBox[draggedCornerIndex + 1] = y - dragOffsetY;
+                // console.log('Jello corner dragged to:', x, y);
+                drawBoxes();
+            } else if (isDrawing) {
+                drawBoxes();
+                ctx.strokeStyle = colors.primary;
+                ctx.lineWidth = 10;
+                ctx.strokeRect(startX, startY, x - startX, y - startY);
+            }
         });
 
         canvas.addEventListener('mouseup', (e) => {
-            if (!isDrawing || currentImageIndex === -1) return;
+            if (isDraggingCorner) {
+                isDraggingCorner = false;
+                draggedCornerIndex = -1;
+            } else if (isDrawing) {
+                isDrawing = false;
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / scale;
+                const y = (e.clientY - rect.top) / scale;
 
-            isDrawing = false;
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / scale;
-            const y = (e.clientY - rect.top) / scale;
-
-            images[currentImageIndex].boxes.push([startX, startY, x, startY, x, y, startX, y]);
+                images[currentImageIndex].boxes.push([startX, startY, x, startY, x, y, startX, y]);
+            }
             drawBoxes();
         });
 
@@ -490,6 +608,15 @@
                 captionResult.textContent = 'Generating caption...';
 
                 try {
+                    if (!captioner) {
+                        captionResult.textContent = 'Initializing captioner...';
+                        await loadCaptioner();
+                    }
+
+                    if (!captioner) {
+                        throw new Error('Captioner failed to initialize');
+                    }
+
                     const img = images[currentImageIndex].image;
                     const [x1, y1, x2, y2] = [
                         Math.min(selectedBox[0], selectedBox[4]),
@@ -584,6 +711,12 @@
         }
 
         exportTextButton.addEventListener('click', exportText);
+
+        fontSizeSlider.addEventListener('input', (e) => {
+            fontSize = parseInt(e.target.value);
+            fontSizeLabel.textContent = `${fontSize}px`;
+            drawBoxes();
+        });
 
         updateImageInfo();
     </script>
