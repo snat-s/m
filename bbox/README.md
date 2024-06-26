@@ -2,8 +2,7 @@
 
 ![bbox logo](bbox.png)
 
-Bbox is a tiny bounding box interface to generate bounding
-boxes.
+Boom box a tool for drawing bounding boxes.
 
 My handwriting sucks and it seems that even the best AI
 models can't read it 100% of the time correctly.
