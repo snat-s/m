@@ -1,4 +1,4 @@
-![tiniest 1% logo](./tinier_logo.png)
+![tiniest 1% logo](./tiniest_logo.png)
 
 This is the about page from my website.
 
