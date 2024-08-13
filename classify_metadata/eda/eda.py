@@ -296,7 +296,7 @@ if __name__ == "__main__":
     parquet_directory = "/mnt/sets/parquet_pdf/"
     output_directory = "./classes"
     n_samples = 8_500_000 #6_500_000 #9_000_000 
-    visualize_per_class = False
-    should_plot_pie = True
+    visualize_per_class = True 
+    should_plot_pie = False 
     manifold_decomposition = 'pca' # 'pca' # 'umap' 
     main(embedding_directory, parquet_directory, output_directory, manifold_decomposition, visualize_per_class, should_plot_pie, n_samples)

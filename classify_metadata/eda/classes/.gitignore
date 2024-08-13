@@ -1,0 +1,3 @@
+pca_individual_plots/
+umap_individual_plots/
+*.npy
