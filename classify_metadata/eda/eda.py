@@ -5,10 +5,18 @@ import glob
 from tqdm import tqdm
 import os
 import pyarrow.parquet as pq
+from collections import Counter
 import pandas as pd
 import umap
 import random
 import colorsys
+
+colors = [
+    '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+    '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+    '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5',
+    '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5'
+]
 
 def load_first_n_samples(directory, n_samples=4_000_000):
     all_embeddings = []
@@ -38,30 +46,20 @@ def perform_pca(embeddings, n_components=3):
     pca = PCA(n_components=n_components)
     return pca.fit_transform(embeddings)
 
-def generate_distinct_colors(n):
-    hue_partition = 1.0 / (n + 1)
-    colors = []
-    for i in range(n):
-        hue = i * hue_partition
-        saturation = 0.8 + random.uniform(0, 0.2)  # High saturation with some variation
-        lightness = 0.5 + random.uniform(0, 0.2)   # Medium to high lightness
-        rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
-        colors.append(rgb)
-    random.shuffle(colors)  # Shuffle to avoid adjacent similar colors
-    return colors
-
-def visualize_pca_2d_per_class(pca_result, predictions, output_directory, manifold_decomposition):
+def visualize_2d_individual_classes(pca_result, predictions, output_directory, manifold_decomposition):
     valid_mask = np.array(predictions) != 'NA' 
-    print(valid_mask.sum())
     pca_result = pca_result[valid_mask]
     predictions = np.array(predictions)[valid_mask]
-
+    
     # Get unique classes and assign colors
-    unique_classes = list(set(predictions))
-    colors = generate_distinct_colors(len(unique_classes)) #plt.cm.rainbow(np.linspace(0, 1, len(unique_classes)))
+    unique_classes = sorted(list(set(predictions)))
+    colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_classes)))
     color_dict = dict(zip(unique_classes, colors))
-
-    # Create a plot for each class
+    
+    # Create a subdirectory for individual class plots
+    individual_plots_dir = os.path.join(output_directory, f"{manifold_decomposition}_individual_plots")
+    os.makedirs(individual_plots_dir, exist_ok=True)
+    
     for class_name in unique_classes:
         plt.figure(figsize=(10, 8))
         mask = np.array(predictions) == class_name
@@ -69,31 +67,99 @@ def visualize_pca_2d_per_class(pca_result, predictions, output_directory, manifo
             pca_result[mask, 0], 
             pca_result[mask, 1], 
             c=[color_dict[class_name]],
-            s=0.1,  # Slightly larger points for individual plots
-            alpha=0.3,
+            s=0.01,
+            alpha=0.01,
             label=class_name
         )
-
-        # Add labels and title
-        plt.xlabel('PC1')
-        plt.ylabel('PC2')
-        plt.title(f'2D PCA of Embeddings - Class: {class_name}')
+        plt.title(f'2D {manifold_decomposition} of Embeddings - Class: {class_name}')
+        plt.legend(markerscale=20, loc='upper right')
+        plt.xticks([])
+        plt.yticks([])
         
-        # Add a legend
-        plt.legend(markerscale=20)  # Increase markerscale for visibility
-
         # Improve the layout
         plt.tight_layout()
-
-        # Save the plot
-        save_path = os.path.join(output_directory, f"{manifold_decomposition}_visualization_{class_name}_no_na.png")
+        
+        # Save the individual plot
+        save_path = os.path.join(individual_plots_dir, f"{manifold_decomposition}_visualization_{class_name}_no_na.png")
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.close()  # Close the figure to free up memory
-        print(f"PCA visualization for class {class_name} saved to {save_path}")
+        plt.close()
+        print(f"{manifold_decomposition} visualization for class {class_name} saved to {save_path}")
 
-def visualize_2d(pca_result, predictions, save_path=None):
+def visualize_2d_per_class(pca_result, predictions, output_directory, manifold_decomposition):
+    valid_mask = np.array(predictions) != 'NA' 
+    pca_result = pca_result[valid_mask]
+    predictions = np.array(predictions)[valid_mask]
+    
     # Get unique classes and assign colors
-    unique_classes = list(set(predictions))
+    unique_classes = sorted(list(set(predictions)))
+    colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_classes)))
+    color_dict = dict(zip(unique_classes, colors))
+    
+    # Calculate grid dimensions
+    n_classes = len(unique_classes)
+    n_cols = int(np.ceil(np.sqrt(n_classes)))
+    n_rows = int(np.ceil(n_classes / n_cols))
+    
+    # Create a single figure with subplots
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
+    fig.suptitle(f'2D {manifold_decomposition} of Embeddings by Class', fontsize=16)
+    
+    # Flatten axes array for easier indexing
+    axes = axes.flatten()
+    
+    for i, class_name in enumerate(unique_classes):
+        ax = axes[i]
+        mask = np.array(predictions) == class_name
+        ax.scatter(
+            pca_result[mask, 0], 
+            pca_result[mask, 1], 
+            c=[color_dict[class_name]],
+            s=0.01,
+            alpha=0.01,
+            label=class_name
+        )
+        ax.set_title(f'Class: {class_name}')
+        ax.legend(markerscale=20, loc='upper right')
+        ax.set_xticks([])
+        ax.set_yticks([])
+    
+    # Remove any unused subplots
+    for j in range(i+1, len(axes)):
+        fig.delaxes(axes[j])
+    
+    # Improve the layout
+    plt.tight_layout()
+    
+    # Save the plot
+    save_path = os.path.join(output_directory, f"{manifold_decomposition}_visualization_all_classes_no_na.png")
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"{manifold_decomposition} visualization for all classes saved to {save_path}")
+    visualize_2d_individual_classes(pca_result, predictions, output_directory, manifold_decomposition)
+
+def plot_pie(predictions, save_path):
+    # Count the occurrences of each prediction using Counter
+    prediction_counts = Counter(predictions)
+    
+    # Since we know there are exactly 17 classes, we can use all of them
+    labels = list(prediction_counts.keys())
+    sizes = list(prediction_counts.values())
+    
+    # Create a pie chart
+    plt.figure(figsize=(12, 8))
+    plt.pie(sizes, labels=labels, colors=colors[:len(labels)], autopct='%1.1f%%', pctdistance=0.85, startangle=45)
+    plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle
+    plt.title('Distribution of 17 Prediction Classes')
+    
+    # Save the plot
+    plt.savefig(save_path)
+    plt.close()
+    print(labels,sum(sizes))
+    print(f"Pie chart saved to {save_path}")
+
+def visualize_2d_plus_classes(pca_result, predictions, manifold_decomposition, save_path=None):
+    # Get unique classes and assign colors
+    unique_classes = sorted(list(set(predictions)))
     colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_classes)))
     color_dict = dict(zip(unique_classes, colors))
 
@@ -105,33 +171,87 @@ def visualize_2d(pca_result, predictions, save_path=None):
             pca_result[mask, 0], 
             pca_result[mask, 1], 
             c=[color_dict[class_name]],
-            s=0.1,  # Keep the actual plot points small
+            s=.01,              
             alpha=0.1,
             label=class_name
         )
 
-    # Add labels and title
-    plt.xlabel('PC1')
-    plt.ylabel('PC2')
-    plt.title(f'2D PCA of Embeddings (First {len(pca_result)} samples)')
-    
-    # Create a custom legend with larger points
+    plt.title(f'2D {manifold_decomposition} of Embeddings (First {len(pca_result)} samples)')
     legend_elements = [plt.Line2D([0], [0], marker='o', color='w', 
                                   label=class_name, 
                                   markerfacecolor=color_dict[class_name], 
                                   markersize=10)  # Increase this value for larger legend points
                        for class_name in unique_classes]
     plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
-
-    # Improve the layout
     plt.tight_layout()
 
-    # Save the plot if a save path is provided
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"PCA visualization saved to {save_path}")
+        print(f"{manifold_decomposition} visualization saved to {save_path}")
 
-def main(embedding_directory, parquet_directory, output_directory, manifold_decomposition, visualize_per_class, n_samples=4_000_000):
+def visualize_2d(result, manifold_decomposition, save_path=None):
+    plt.figure(figsize=(12, 10))
+    plt.scatter(
+        result[:, 0],
+        result[:, 1],
+        c='black',  # Single color for all points
+        s=0.01,    # Small point size
+        alpha=0.1  # Low alpha for transparency
+    )
+
+    plt.title(f'2D {manifold_decomposition} of Embeddings (First {len(result)} samples)')
+    plt.xticks([])
+    plt.yticks([])
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"{manifold_decomposition} visualization saved to {save_path}")
+    plt.close()
+
+def visualize_3d(pca_result, predictions, manifold_decomposition, save_path=None):
+    # Get unique classes and assign colors
+    unique_classes = sorted(list(set(predictions)))
+    colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_classes)))
+    color_dict = dict(zip(unique_classes, colors))
+
+    # Create a 3D scatter plot
+    fig = plt.figure(figsize=(12, 10))
+    ax = fig.add_subplot(111, projection='3d')
+
+    for class_name in unique_classes:
+        mask = np.array(predictions) == class_name
+        ax.scatter(
+            pca_result[mask, 0], 
+            pca_result[mask, 1], 
+            pca_result[mask, 2],
+            c=[color_dict[class_name]],
+            s=1,              
+            alpha=0.1,
+            label=class_name
+        )
+
+    ax.set_title(f'3D {manifold_decomposition} of Embeddings (First {len(pca_result)} samples)')
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC2')
+    ax.set_zlabel('PC3')
+
+    # Create legend
+    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', 
+                                  label=class_name, 
+                                  markerfacecolor=color_dict[class_name], 
+                                  markersize=10)
+                       for class_name in unique_classes]
+    ax.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"3D {manifold_decomposition} visualization saved to {save_path}")
+    plt.close()
+
+def main(embedding_directory, parquet_directory, output_directory, manifold_decomposition, visualize_per_class, should_plot_pie, n_samples=4_000_000):
     # Create output directory if it doesn't exist
     os.makedirs(output_directory, exist_ok=True)
 
@@ -158,17 +278,25 @@ def main(embedding_directory, parquet_directory, output_directory, manifold_deco
 
     assert len(result) == len(predictions), f"Mismatch between {manifold_decomposition} results and predictions count"
 
+    save_path = os.path.join(output_directory, f"{manifold_decomposition}_visualization_{len(result)}_no_classes.png")
+    visualize_2d(result, manifold_decomposition, save_path)
     save_path = os.path.join(output_directory, f"{manifold_decomposition}_visualization_{len(result)}_samples.png")
-    visualize_2d(result, predictions, save_path)
+    visualize_2d_plus_classes(result, predictions, manifold_decomposition, save_path)
 
     if visualize_per_class:
-        visualize_pca_2d_per_class(result, predictions, output_directory, manifold_decomposition)
+        visualize_2d_per_class(result, predictions, output_directory, manifold_decomposition)
+
+    if should_plot_pie:
+        save_path = os.path.join(output_directory, f"predictions_{len(result)}_pie.png")
+        plot_pie(predictions, save_path)
+
 
 if __name__ == "__main__":
     embedding_directory = "/mnt/sets/embeddings-pdf-corpus-urls/"
     parquet_directory = "/mnt/sets/parquet_pdf/"
     output_directory = "./classes"
-    n_samples = 6_500_000
-    visualize_per_class = True
-    manifold_decomposition = 'umap' # 'pca'
-    main(embedding_directory, parquet_directory, output_directory, manifold_decomposition, visualize_per_class, n_samples)
+    n_samples = 8_500_000 #6_500_000 #9_000_000 
+    visualize_per_class = False
+    should_plot_pie = True
+    manifold_decomposition = 'pca' # 'pca' # 'umap' 
+    main(embedding_directory, parquet_directory, output_directory, manifold_decomposition, visualize_per_class, should_plot_pie, n_samples)

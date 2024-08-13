@@ -1,4 +1,4 @@
-# Classiffing all of the pdfs on the internet*
+# Classiffing all of the pdfs on the internet* [WIP]
 
 ## TLDR: 
 
@@ -12,15 +12,15 @@ check it out on my new youtube channel right [here]()! </summary>
 How would you classfy all the pdfs in the internet? Well, that is what
 I tried doing this time.
 
-Lets begine with the mother of all datasets: Common Crawl or CC is a web
+Lets begin with the mother of all datasets: Common Crawl or CC which is a web
 archive of all of the internet, it currently is petabytes in size and has been
 running since 2007. Maybe, you know about the [Internet Archive](archive.org)
 which is almost the same with the main difference being that Common Crawl
-focuses more on archiving the internet for scientists and researchers. That is
-why you still have things like snapshots over time. But, the web crawler
-doesn't save the images, styling or pdfs common to the Internet Archive.
-Whenever CC gets to a pdf, it just stores the first megabyte of information and
-truncates the rest. 
+focuses more on archiving the internet for scientists and researchers. You
+still have things like snapshots over time for websites, but, the web crawler
+doesn't save the images, css or pdfs common to the Internet Archive.
+Specifically, when Common Crawl gets to a pdf, it just stores the first
+megabyte of information and truncates the rest. 
 
 This is where
 [SafeDocs](https://digitalcorpora.org/corpora/file-corpora/cc-main-2021-31-pdf-untruncated/)
@@ -39,7 +39,68 @@ Lets define what classifying all of this pdfs using different labels actually
 means. For example: I wanted to tag a Linear Algebra pdf as Math or an Anatomy
 textbook as Medicine. 
 
-![https://claude.site/artifacts/e5a8f0ed-1e0d-4b1d-b755-a3025c77de98](FineWeb diagram of how they trained)
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <style>
+    .title { font: bold 24px Arial, sans-serif; }
+    .step { font: 18px Arial, sans-serif; }
+    .emoji { font: 30px Arial, sans-serif; }
+    .arrow { font: 24px Arial, sans-serif; fill: #4a90e2; }
+  </style>
+  
+  <text x="300" y="40" text-anchor="middle" class="title">🍷 FineWeb-Edu Training Process 📚</text>
+  
+  <g transform="translate(300,100)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🔍</tspan>
+      <tspan x="0" dy="30">Sample 500k documents from FineWeb</tspan>
+    </text>
+  </g>
+  
+  <text x="300" y="160" text-anchor="middle" class="arrow">⬇️</text>
+  
+  <g transform="translate(300,200)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🦙</tspan>
+      <tspan x="0" dy="30">Annotate with Llama-3-70B-Instruct</tspan>
+    </text>
+  </g>
+  
+  <text x="300" y="260" text-anchor="middle" class="arrow">⬇️</text>
+  
+  <g transform="translate(300,300)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🧠</tspan>
+      <tspan x="0" dy="30">Train classifier on annotations</tspan>
+    </text>
+  </g>
+  
+  <text x="300" y="360" text-anchor="middle" class="arrow">⬇️</text>
+  
+  <g transform="translate(300,400)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🔬</tspan>
+      <tspan x="0" dy="30">Apply classifier to full FineWeb dataset</tspan>
+    </text>
+  </g>
+  
+  <text x="300" y="460" text-anchor="middle" class="arrow">⬇️</text>
+  
+  <g transform="translate(300,500)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🚫</tspan>
+      <tspan x="0" dy="30">Filter out low-scoring samples</tspan>
+    </text>
+  </g>
+  
+  <text x="300" y="560" text-anchor="middle" class="arrow">⬇️</text>
+  
+  <g transform="translate(300,600)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🎉</tspan>
+      <tspan x="0" dy="30">Result: 1.3T educational tokens</tspan>
+    </text>
+  </g>
+</svg>
 
 The reason for all of this is because I wanted to use LLMs in my personal
 projects and I got this idea after reading the [Fineweb technical blog /
@@ -74,7 +135,7 @@ Tells us a lot of information.
 I know that this url is going to be education or technology adjacent. For now,
 lets just say its education because it has the "Introduction" part in its name.
 
-Here is where the bit of prompt engineering that I used enters the picture:
+Here is where the bit of prompt engineering that I used enters the picture.
 
 ### Few shot prompting
 
@@ -127,7 +188,43 @@ new student classifier!
 
 ### Idea 1
 
-![Embeddings example Claude]()
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- Axes -->
+  <line x1="50" y1="250" x2="350" y2="250" stroke="black" stroke-width="2"/>
+  <line x1="50" y1="250" x2="50" y2="50" stroke="black" stroke-width="2"/>
+  
+  <!-- Data points -->
+  <!-- Animals (blue) -->
+  <circle cx="100" cy="150" r="4" fill="blue"/>
+  <text x="110" y="155" font-size="12" fill="blue">dog</text>
+  
+  <circle cx="120" cy="180" r="4" fill="blue"/>
+  <text x="130" y="185" font-size="12" fill="blue">cat</text>
+  
+  <circle cx="90" cy="200" r="4" fill="blue"/>
+  <text x="100" y="205" font-size="12" fill="blue">elephant</text>
+  
+  <!-- Fruits (green) -->
+  <circle cx="200" cy="100" r="4" fill="green"/>
+  <text x="210" y="105" font-size="12" fill="green">apple</text>
+  
+  <circle cx="220" cy="80" r="4" fill="green"/>
+  <text x="230" y="85" font-size="12" fill="green">banana</text>
+  
+  <circle cx="180" cy="120" r="4" fill="green"/>
+  <text x="190" y="125" font-size="12" fill="green">orange</text>
+  
+  <!-- Vehicles (red) -->
+  <circle cx="300" cy="180" r="4" fill="red"/>
+  <text x="310" y="185" font-size="12" fill="red">car</text>
+  
+  <circle cx="320" cy="200" r="4" fill="red"/>
+  <text x="330" y="205" font-size="12" fill="red">truck</text>
+  
+  <circle cx="280" cy="160" r="4" fill="red"/>
+  <text x="290" y="165" font-size="12" fill="red">bike</text>
+</svg>
+
 
 I am going to introduce the idea of an embeddings model. For short, an
 embeddings model is a model capable of passing things like text, images, video
@@ -158,22 +255,26 @@ But it is not the best embeddings model based on the [Massive Text Embeddings
 Benchmark](https://huggingface.co/spaces/mteb/leaderboard). So I decided to try
 some models that ranked really well in here. The problem with this benchmark is
 that most of the models are too big, with roughly 7B parameters, I can not
-afford to run that in real time. So I decided to instead go for the next best
-thing, [Stella_en_400M](https://huggingface.co/dunzhang/stella_en_400M_v5). But
-the problem was that I wanted to read how it worked and I don't really like
-when a model is published and you go to a Github link that has a TODO: add all
-on their repo. 
+afford to run that and expect it to classify 8 million pdfs quickly. So I
+decided to instead go for the next best thing,
+[Stella_en_400M](https://huggingface.co/dunzhang/stella_en_400M_v5). But the
+problem was that I wanted to read how it worked and I don't really like when a
+model is published and you go to a Github link that has a **TODO: add the rest of info**
+in their README.
 
-So, to not through shade on anyone I decided to try out a range of models
-including the base model for Stella called gte-1.5 and Arctic Embed. Along with
-others like all-mpnet-base, distillbert, flant-t5-small and bert-base-uncased. # TODO: make this list full.
+So, I decided to try out a range of models including the base model for Stella
+called gte-1.5 and Arctic Embed. Along with others like all-mpnet-base,
+distillbert, flant-t5-small and bert-base-uncased. # TODO: make this list full.
 
 Finetuning a model is pretty simple with Huggingface because it abstracts a lot
-of the code from you and I was just, freezing the main model and training the
-embeddings and the classifier head. After a series of runs, I found that for my
-problem the most performant model was `Alibaba-large-gte-1.5`, it got up to
-59.14% of accuracy on all classes. That's not thaaat bad for a first attempt
-and such a low training dataset.
+of the code from you and thanks to just freezing the main model and training
+the embeddings and the classifier head I could run the entire thing in my
+laptop. After a series of runs, I found that for my problem the most performant
+model was `Alibaba-large-gte-1.5`, it got up to 59.14% of accuracy on all
+classes. That's not thaaat bad for a first attempt and such a low training
+dataset.
+
+![accuracy of different models through time]()
 
 I was a bit disappointed at this point because I had paid for a bunch of labels
 and it seemed that I needed to be more careful on the training or generate a
@@ -233,12 +334,12 @@ that I had by **24.83%**.
 ### Idea 3
 
 But guess what? You don't actually need deep learning to generate embeddings.
-You can just split the text into smaller parts and count the occurrences of it,
-TFIDF is almost that with a fancier formula. So I decided to go full on out and
-just go back to the basics of NLP. To my surprise, the resulting models where
-not complete garbage! 
+You can just split the text into smaller parts and count the occurrences of it.
+There is a this thing called TFIDF that is almost that but it has a fancier
+formula. So I decided to go full on out and just go back to the basics of NLP.
+To my surprise, the resulting models where not complete garbage! 
 
-They were actually capable of predicting something that wasn't ass bad as I was
+They were actually capable of predicting something that wasn't as bad as I was
 expecting:
 
 ```
@@ -278,8 +379,8 @@ get to at least 70% accuracy.
 
 The first thing that I made was generate a lot more labels, I feel like I did
 Deep Learning a disservice by using so little data. So I generate another 400k
-labels using Llama3.1-7B, this time a smaller model because I don't want to break
-the bank on inference.
+labels using Llama3.1-7B (this time a smaller model because I don't want to break
+the bank on inference).
 
 I did some experiments and to not bore you I saw that the more data the better
 for my specific runs. So I decided to just do a dry run with two different
@@ -321,35 +422,39 @@ of its abilities.
 |XGBoost Tf-Idf|67.52%|
 |LinearRegressor Tf-Idf|70.68%|
 |gte-large naïve (400k labels)|69.22%|
-|XGBoost Embeddings HyperParameter Sweep| | # TODO: Add this.
+|XGBoost Embeddings HyperParameter Sweep|85.26%|
 
 Now that we have some models, we can do the fun part and generate labels for
-the rest of the entire internet!
+the rest of the entire dataset!
 
 ## Classifying all the corpus
 
-The code is nothing fancy, It literally loads to memory some embeddings and then predicts them.
-The distribution of predictions looks like the following:
+The code is nothing fancy. It literally loads to memory some embeddings and
+then predicts them. The distribution of predictions looks like the following:
 
-![Distribution of predictions for XGBoost ensemble](./pie_xgboost_preds.png)
+![Distribution of predictions for XGBoost ensemble](./eda/classes/predictions_8448751_pie.png)
 
-It took roughly 18 minutes to predict the entire thing. # TODO: REmeasure this thing.
+It took roughly an hour to predict all of the pdf tags but this was because I
+didn't make it run on GPU because I forgot to set it up that way. But even then,
+I would have to say that it is not that bad!
 
 Finally, I wanted to generate some incredibly aesthetically pleasing pictures.
 And after doing some test runs on my local machine I decided to do some PCA and
-UMAP visualizations of a looot of points. Like, ALL of the points. I am pretty
-sure this are not the biggest runs of PCA and UMAP because those belong to the
-optimized versions from NVIDIA, but its pretty crazy that you can run this on
-CPU and a loot of RAM without a problem.
+UMAP visualizations of a looot of points. Like, ALL of the predictions +
+embeddings. I am pretty sure this are not the biggest runs of PCA and UMAP
+because those belong to the optimized versions from NVIDIA, but its pretty
+crazy that you can run this on CPU and a loot of RAM without a problem.
 
 For PCA I made a visualization of the entire dataset. All of the eight and a
 half million dots in a single picture:
 
-![PCA](pca_visualization_8448751.png)
+![PCA of all the points](./eda/classes/pca_visualization_8448751_no_classes.png)
 
 For the classifications, it looks like this:
 
-![PCA classified]()
+![PCA classification of all the points](./eda/classes/pca_visualization_8448751_samples.png)
+
+![PCA classification decoupled](./eda/classes/pca_visualization_all_classes_no_na.png)
 
 Finally, for UMAP, I had to rent out a bigger machine and thanks to the kind
 sponsorship of some credit from my internship. I rented out a Standard_E48s_v3
@@ -362,7 +467,12 @@ shows all of the might of UMAP draining the RAM.
 
 So finally, for the final image, for me personally this is the show stiller:
 
-![](umap_visualization_6500000.png)
+![UMAP unclassified](./eda/classes/umap_visualization_6500000_samples.png)
+
+And the classifications look like this:
+
+![UMAP classified](./eda/classes/umap_visualization_all_classes_no_na.png)
+
 
 ## Conclusion
 
