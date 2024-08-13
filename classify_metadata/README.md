@@ -99,7 +99,7 @@ and the Llama-3-70B model through the [together](together.ai) API.
 
 The distribution of 100k labels looks originally like this:
 
-![Distribution of 100k labels](./eda/pdf_classification_piechart.png)
+![Distribution of 100k labels](./assets/pdf_classification_piechart.png)
 
 So, as you can see, there is a lot of really small data points that are going
 to be extremely annoying to classify. So guess what I'm going to do? I'm going
@@ -110,7 +110,7 @@ Because this labels are unbalanced, I decided to balance them and just take 5k
 samples at the most of each possible label. This left me with a total of
 59k labels:
 
-![59k label pie chart, more distributed](./eda/pdf_classification_piechart_equally_distributed.png)
+![59k label pie chart, more distributed](./assets/pdf_classification_piechart_equally_distributed.png)
 
 With this newly minted dataset, I decided to start going after the training of the
 new student classifier!
@@ -334,7 +334,7 @@ the rest of the entire dataset!
 The code is nothing fancy. It literally loads to memory some embeddings and
 then predicts them. The distribution of predictions looks like the following:
 
-![Distribution of predictions for XGBoost ensemble](./eda/classes/predictions_8448751_pie.png)
+![Distribution of predictions for XGBoost ensemble](./assets/predictions_8448751_pie.png)
 
 It took roughly an hour to predict all of the pdf tags but this was because I
 didn't make it run on GPU because I forgot to set it up that way. But even then,
@@ -349,15 +349,15 @@ but they might be up there.
 For PCA I made a visualization of the entire dataset. All of the eight and a
 half million dots in a single picture:
 
-![PCA of all the points](./eda/classes/pca_visualization_8448751_no_classes.png)
+![PCA of all the points](./assets/pca_visualization_8448751_no_classes.png)
 
 For the classifications, it looks like this:
 
-![PCA classification of all the points](./eda/classes/pca_visualization_8448751_samples.png)
+![PCA classification of all the points](./assets/pca_visualization_8448751_samples.png)
 
 And if we decouple each class it looks like this:
 
-![PCA classification decoupled](./eda/classes/pca_visualization_all_classes_no_na.png)
+![PCA classification decoupled](./assets/pca_visualization_all_classes_no_na.png)
 
 Finally, for UMAP, I had to rent out a bigger machine and thanks to the kind
 sponsorship of some credit from my internship. I rented out a Standard_E48s_v3
@@ -370,15 +370,15 @@ shows all of the might of UMAP draining the RAM.
 
 So finally, for the UMAP visualization, it looks like the following:
 
-![UMAP unclassified](./eda/classes/umap_visualization_6500000_no_classes.png)
+![UMAP unclassified](./assets/umap_visualization_6500000_no_classes.png)
 
 And the classifications look like this:
 
-![UMAP classified](./eda/classes/umap_visualization_6500000_samples.png)
+![UMAP classified](./assets/umap_visualization_6500000_samples.png)
 
 Per class plot looks like the following:
 
-![UMAP classified](./eda/classes/umap_visualization_all_classes_no_na.png)
+![UMAP classified](./assets/umap_visualization_all_classes_no_na.png)
 
 ## Conclusion
 
