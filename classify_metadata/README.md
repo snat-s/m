@@ -14,7 +14,7 @@ check it out on my new youtube channel right <a href="https://www.youtube.com/@s
 How would you classify all the pdfs in the internet? Well, that is what
 I tried doing this time.
 
-Lets begin with the mother of all datasets: Common Crawl or CC which is a web
+Lets begin with the mother of all datasets: Common Crawl or CC is a web
 archive of all of the internet, it currently is petabytes in size and has been
 running since 2007. Maybe, you know about the [Internet Archive](archive.org)
 which is almost the same but with the main difference being that Common Crawl
@@ -50,7 +50,7 @@ projects and I got this idea after reading the [Fineweb technical blog /
 paper](https://huggingface.co/spaces/HuggingFaceFW/blogpost-fineweb-v1). The
 FineWeb team endedup creating a subset for "educational" content  based on the
 bigger FineWeb dataset. What they did was use a Teacher and student approach
-where the LLM generates labels for unstructured text and then you train a
+where the LLM generates labels from unstructured text and then you train a
 smaller student or "distilled" learner capable of classifying based on the
 labels generated. 
 
@@ -403,8 +403,8 @@ at the original dataset, the data card with download instructions can be found a
 
 ## Footnotes 
 
-[^1]  The only other rival in size is [MINT-1T](https://arxiv.org/abs/2406.11271), but MINT-1T is a mixture of HTML + PDFs + Arxiv.
+[^1]:  The only other rival in size is [MINT-1T](https://arxiv.org/abs/2406.11271), but MINT-1T is a mixture of HTML + PDFs + Arxiv.
 
-[^2] First mistake.
+[^2]: First mistake.
 
-[^3] If I had to do it again, I would just rent a GPU, its not worth it to train models on a laptop.
+[^3]: If I had to do it again, I would just rent a GPU, its not worth it to train models on a laptop.
