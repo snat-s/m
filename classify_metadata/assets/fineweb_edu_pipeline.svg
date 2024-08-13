@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <style>
+    .title { font: bold 24px Arial, sans-serif; }
+    .step { font: 18px Arial, sans-serif; }
+    .emoji { font: 30px Arial, sans-serif; }
+    .arrow { font: 24px Arial, sans-serif; fill: #4a90e2; }
+  </style>
+  
+  <text x="300" y="40" text-anchor="middle" class="title">🍷 FineWeb-Edu Training Process 📚</text>
+  
+  <g transform="translate(300,100)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🔍</tspan>
+      <tspan x="0" dy="30">Sample 500k documents from FineWeb</tspan>
+    </text>
+  </g>
+  
+  <text x="300" y="160" text-anchor="middle" class="arrow">⬇️</text>
+  
+  <g transform="translate(300,200)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🦙</tspan>
+      <tspan x="0" dy="30">Annotate with Llama-3-70B-Instruct</tspan>
+    </text>
+  </g>
+  
+  <text x="300" y="260" text-anchor="middle" class="arrow">⬇️</text>
+  
+  <g transform="translate(300,300)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🧠</tspan>
+      <tspan x="0" dy="30">Train classifier on annotations</tspan>
+    </text>
+  </g>
+  
+  <text x="300" y="360" text-anchor="middle" class="arrow">⬇️</text>
+  
+  <g transform="translate(300,400)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🔬</tspan>
+      <tspan x="0" dy="30">Apply classifier to full FineWeb dataset</tspan>
+    </text>
+  </g>
+  
+  <text x="300" y="460" text-anchor="middle" class="arrow">⬇️</text>
+  
+  <g transform="translate(300,500)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🚫</tspan>
+      <tspan x="0" dy="30">Filter out low-scoring samples</tspan>
+    </text>
+  </g>
+  
+  <text x="300" y="560" text-anchor="middle" class="arrow">⬇️</text>
+  
+  <g transform="translate(300,600)">
+    <text x="0" y="0" text-anchor="middle" class="step">
+      <tspan x="0" dy="0" class="emoji">🎉</tspan>
+      <tspan x="0" dy="30">Result: 1.3T educational tokens</tspan>
+    </text>
+  </g>
+</svg>
+

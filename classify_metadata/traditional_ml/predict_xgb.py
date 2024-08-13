@@ -54,14 +54,10 @@ def save_to_parquet(data, output_file):
     pq.write_table(table, output_file)
     print(f"Saved data to {output_file}")
 
-def get_class_prediction(probs, class_names, threshold=0.5):
+def get_class_prediction(probs, class_names):
     max_prob_index = np.argmax(probs)
     max_prob = probs[max_prob_index]
-    
-    if max_prob >= threshold:
-        return class_names[max_prob_index]
-    else:
-        return 'NA'
+    return class_names[max_prob_index]
 
 def main():
     with open('./models/classifier_classes.json', 'r') as f:
@@ -73,14 +69,14 @@ def main():
         model.load_model(f'./models/xgboost_classifier_{class_name}.json')
         models[class_name] = model
     
-    df = pd.read_csv('cc-provenance-20230303.csv')
+    df = pd.read_csv('../data/cc-provenance-20230303.csv', low_memory=False)
     urls = df['url'].tolist()
     
     output_dir = '/mnt/sets/parquet_pdf/'
     os.makedirs(output_dir, exist_ok=True)
     
     print("Processing batched data...")
-    for i, batch in enumerate(load_batched_data('/mnt/sets/embeddings_pdf/')):
+    for i, batch in enumerate(load_batched_data('/mnt/sets/embeddings-pdf-corpus-urls/')):
         print(f"Processing batch {i+1} with {len(batch)} embeddings")
         predictions = predict_probabilities(batch, class_names, models)
         
@@ -91,7 +87,7 @@ def main():
         data = {
             'url': batch_urls,
             'prediction': [
-                get_class_prediction(probs, class_names, threshold=0.5) 
+                get_class_prediction(probs, class_names) 
                 for probs in zip(*predictions.values())
             ]
         }

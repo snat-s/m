@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- Axes -->
+  <line x1="50" y1="250" x2="350" y2="250" stroke="black" stroke-width="2"/>
+  <line x1="50" y1="250" x2="50" y2="50" stroke="black" stroke-width="2"/>
+  
+  <!-- Data points -->
+  <!-- Animals (blue) -->
+  <circle cx="100" cy="150" r="4" fill="blue"/>
+  <text x="110" y="155" font-size="12" fill="blue">dog</text>
+  
+  <circle cx="120" cy="180" r="4" fill="blue"/>
+  <text x="130" y="185" font-size="12" fill="blue">cat</text>
+  
+  <circle cx="90" cy="200" r="4" fill="blue"/>
+  <text x="100" y="205" font-size="12" fill="blue">elephant</text>
+  
+  <!-- Fruits (green) -->
+  <circle cx="200" cy="100" r="4" fill="green"/>
+  <text x="210" y="105" font-size="12" fill="green">apple</text>
+  
+  <circle cx="220" cy="80" r="4" fill="green"/>
+  <text x="230" y="85" font-size="12" fill="green">banana</text>
+  
+  <circle cx="180" cy="120" r="4" fill="green"/>
+  <text x="190" y="125" font-size="12" fill="green">orange</text>
+  
+  <!-- Vehicles (red) -->
+  <circle cx="300" cy="180" r="4" fill="red"/>
+  <text x="310" y="185" font-size="12" fill="red">car</text>
+  
+  <circle cx="320" cy="200" r="4" fill="red"/>
+  <text x="330" y="205" font-size="12" fill="red">truck</text>
+  
+  <circle cx="280" cy="160" r="4" fill="red"/>
+  <text x="290" y="165" font-size="12" fill="red">bike</text>
+</svg>
+

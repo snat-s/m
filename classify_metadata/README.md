@@ -39,68 +39,7 @@ Lets define what classifying all of this pdfs using different labels actually
 means. For example: I wanted to tag a Linear Algebra pdf as Math or an Anatomy
 textbook as Medicine. 
 
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
-  <style>
-    .title { font: bold 24px Arial, sans-serif; }
-    .step { font: 18px Arial, sans-serif; }
-    .emoji { font: 30px Arial, sans-serif; }
-    .arrow { font: 24px Arial, sans-serif; fill: #4a90e2; }
-  </style>
-  
-  <text x="300" y="40" text-anchor="middle" class="title">🍷 FineWeb-Edu Training Process 📚</text>
-  
-  <g transform="translate(300,100)">
-    <text x="0" y="0" text-anchor="middle" class="step">
-      <tspan x="0" dy="0" class="emoji">🔍</tspan>
-      <tspan x="0" dy="30">Sample 500k documents from FineWeb</tspan>
-    </text>
-  </g>
-  
-  <text x="300" y="160" text-anchor="middle" class="arrow">⬇️</text>
-  
-  <g transform="translate(300,200)">
-    <text x="0" y="0" text-anchor="middle" class="step">
-      <tspan x="0" dy="0" class="emoji">🦙</tspan>
-      <tspan x="0" dy="30">Annotate with Llama-3-70B-Instruct</tspan>
-    </text>
-  </g>
-  
-  <text x="300" y="260" text-anchor="middle" class="arrow">⬇️</text>
-  
-  <g transform="translate(300,300)">
-    <text x="0" y="0" text-anchor="middle" class="step">
-      <tspan x="0" dy="0" class="emoji">🧠</tspan>
-      <tspan x="0" dy="30">Train classifier on annotations</tspan>
-    </text>
-  </g>
-  
-  <text x="300" y="360" text-anchor="middle" class="arrow">⬇️</text>
-  
-  <g transform="translate(300,400)">
-    <text x="0" y="0" text-anchor="middle" class="step">
-      <tspan x="0" dy="0" class="emoji">🔬</tspan>
-      <tspan x="0" dy="30">Apply classifier to full FineWeb dataset</tspan>
-    </text>
-  </g>
-  
-  <text x="300" y="460" text-anchor="middle" class="arrow">⬇️</text>
-  
-  <g transform="translate(300,500)">
-    <text x="0" y="0" text-anchor="middle" class="step">
-      <tspan x="0" dy="0" class="emoji">🚫</tspan>
-      <tspan x="0" dy="30">Filter out low-scoring samples</tspan>
-    </text>
-  </g>
-  
-  <text x="300" y="560" text-anchor="middle" class="arrow">⬇️</text>
-  
-  <g transform="translate(300,600)">
-    <text x="0" y="0" text-anchor="middle" class="step">
-      <tspan x="0" dy="0" class="emoji">🎉</tspan>
-      <tspan x="0" dy="30">Result: 1.3T educational tokens</tspan>
-    </text>
-  </g>
-</svg>
+![Training pipeline for the embeddings model in FineWeb-Edu](./assets/fineweb_edu_pipeline.svg)
 
 The reason for all of this is because I wanted to use LLMs in my personal
 projects and I got this idea after reading the [Fineweb technical blog /
@@ -144,19 +83,7 @@ without training it. Its a really cool trick that you can use and makes the
 models output more coherent and consistent. I am going to give you an extremely
 easy example of how one of this prompts look like:
 
-```
-Please follow the pattern and respond appropietly:
-Q: 2+2 =
-A: 4
-Q: 5+10 =
-A:
-```
-
-ChatGPT answers:
-
-```
-15
-```
+![Few Shot prompting example of an addition](./assets/few_shot_prompting.gif)
 
 This might feel like magic if it is the first time you are using it, but LLMs
 are incredible at following patterns and just showing how to do things can make
@@ -168,7 +95,7 @@ and the Llama-3-70B model through the [together](together.ai) API.
 
 The distribution of 100k labels looks originally like this:
 
-![Distribution of 100k labels](./image.png)
+![Distribution of 100k labels](./eda/pdf_classification_piechart.png)
 
 So, as you can see, there is a lot of really small data points that are going
 to be extremely annoying to classify. So guess what I'm going to do? I'm going
@@ -179,7 +106,7 @@ Because this labels are unbalanced, I decided to balance them and just take 5k
 samples at the most of each possible label. This left me with a total of
 59k labels:
 
-![59k label pie chart, more distributed](./59k_pie_chart.png)
+![59k label pie chart, more distributed](./eda/pdf_classification_piechart_equally_distributed.png)
 
 With this newly minted dataset, I decided to start going after the training of the
 new student classifier!
@@ -188,43 +115,7 @@ new student classifier!
 
 ### Idea 1
 
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
-  <!-- Axes -->
-  <line x1="50" y1="250" x2="350" y2="250" stroke="black" stroke-width="2"/>
-  <line x1="50" y1="250" x2="50" y2="50" stroke="black" stroke-width="2"/>
-  
-  <!-- Data points -->
-  <!-- Animals (blue) -->
-  <circle cx="100" cy="150" r="4" fill="blue"/>
-  <text x="110" y="155" font-size="12" fill="blue">dog</text>
-  
-  <circle cx="120" cy="180" r="4" fill="blue"/>
-  <text x="130" y="185" font-size="12" fill="blue">cat</text>
-  
-  <circle cx="90" cy="200" r="4" fill="blue"/>
-  <text x="100" y="205" font-size="12" fill="blue">elephant</text>
-  
-  <!-- Fruits (green) -->
-  <circle cx="200" cy="100" r="4" fill="green"/>
-  <text x="210" y="105" font-size="12" fill="green">apple</text>
-  
-  <circle cx="220" cy="80" r="4" fill="green"/>
-  <text x="230" y="85" font-size="12" fill="green">banana</text>
-  
-  <circle cx="180" cy="120" r="4" fill="green"/>
-  <text x="190" y="125" font-size="12" fill="green">orange</text>
-  
-  <!-- Vehicles (red) -->
-  <circle cx="300" cy="180" r="4" fill="red"/>
-  <text x="310" y="185" font-size="12" fill="red">car</text>
-  
-  <circle cx="320" cy="200" r="4" fill="red"/>
-  <text x="330" y="205" font-size="12" fill="red">truck</text>
-  
-  <circle cx="280" cy="160" r="4" fill="red"/>
-  <text x="290" y="165" font-size="12" fill="red">bike</text>
-</svg>
-
+![Example of embeddings](./assets/embeddings.svg)
 
 I am going to introduce the idea of an embeddings model. For short, an
 embeddings model is a model capable of passing things like text, images, video
@@ -274,7 +165,7 @@ model was `Alibaba-large-gte-1.5`, it got up to 59.14% of accuracy on all
 classes. That's not thaaat bad for a first attempt and such a low training
 dataset.
 
-![accuracy of different models through time]()
+![accuracy of different models through time](./assets/accuracy_first_experiments.png)
 
 I was a bit disappointed at this point because I had paid for a bunch of labels
 and it seemed that I needed to be more careful on the training or generate a
@@ -382,6 +273,8 @@ Deep Learning a disservice by using so little data. So I generate another 400k
 labels using Llama3.1-7B (this time a smaller model because I don't want to break
 the bank on inference).
 
+![Some of the runs I did for the new dataset](./assets/accuracy_for_new_dataset.png)
+
 I did some experiments and to not bore you I saw that the more data the better
 for my specific runs. So I decided to just do a dry run with two different
 models, this time, influenced by the [The Llama 3 Herd of
@@ -463,7 +356,7 @@ only 6.5 million points through UMAP because 6.5 million was the closest I
 could get the machine before it went out of memory. I have a screenshot that
 shows all of the might of UMAP draining the RAM.
 
-![](ram_choky_time.png)
+![Chonky use of RAM](./assets/chonky_ram.jpg)
 
 So finally, for the final image, for me personally this is the show stiller:
 
@@ -495,5 +388,6 @@ Thanks for reading up until here!
 
 ## Footnotes 
 
-[1]  The only other rival is MINT-1T, but MINT-1T is a mixture of
-HTML + PDFs.
+[1]  The only other rival in size is
+[MINT-1T](https://arxiv.org/abs/2406.11271), but MINT-1T is a mixture of HTML +
+PDFs + Arxiv.

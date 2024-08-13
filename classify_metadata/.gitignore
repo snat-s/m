@@ -3,3 +3,4 @@ venv/
 checkpoints*/
 *.csv
 models/
+.ipynb_checkpoints/
