@@ -1,43 +1,47 @@
-# Classiffing all of the pdfs on the internet* [WIP]
+![The thumbnail of the article, a face looking with starts as eyes.](./assets/classifing%20pdfs.png)
+
+# Classifying all of the pdfs on the internet
 
 ## TLDR: 
 
 <summary> I classified the entirety of SafeDocs using a mixture of LLMs,
-XGBoost and just for fun a LinearRegressor. In the process I too created some
+XGBoost and just for fun some LinearRegressors. In the process I too created some
 really pretty graphs. If you would prefer a video version of this, you can
-check it out on my new youtube channel right [here]()! </summary>
+check it out on my new youtube channel right <a href="https://www.youtube.com/@snats_xyz">here</a>! </summary>
 
 ## Introduction
 
-How would you classfy all the pdfs in the internet? Well, that is what
+How would you classify all the pdfs in the internet? Well, that is what
 I tried doing this time.
 
 Lets begin with the mother of all datasets: Common Crawl or CC which is a web
 archive of all of the internet, it currently is petabytes in size and has been
 running since 2007. Maybe, you know about the [Internet Archive](archive.org)
-which is almost the same with the main difference being that Common Crawl
-focuses more on archiving the internet for scientists and researchers. You
-still have things like snapshots over time for websites, but, the web crawler
-doesn't save the images, css or pdfs common to the Internet Archive.
-Specifically, when Common Crawl gets to a pdf, it just stores the first
-megabyte of information and truncates the rest. 
+which is almost the same but with the main difference being that Common Crawl
+focuses more on archiving the internet for scientists and researchers instead
+of digital preservation. 
+
+What this translates into is that CC doesn't save all of the pdfs when it
+finds them. Specifically, when Common Crawl gets to a pdf, it just stores the
+first megabyte of information and truncates the rest. 
 
 This is where
 [SafeDocs](https://digitalcorpora.org/corpora/file-corpora/cc-main-2021-31-pdf-untruncated/)
 or CC-MAIN-2021-31-PDF-UNTRUNCATED enters the picture. This corpus was
 originally created by the [DARPA SafeDocs
 program](https://www.darpa.mil/program/safe-documents) and what it did was
-refetch all the different pdfs to have untruncated versions of them. This
-dataset is incredibly big, it has roughly 8.4~ million pdfs that uncompressed
-total 8TB. This corpus is the biggest pure pdf dataset on the internet[1]. 
+refetch all the different pdfs from a snapshot of Common Crawl to have
+untruncated versions of them. This dataset is incredibly big, it has roughly
+8.4~ million pdfs that uncompressed total 8TB. This corpus is the biggest pure
+pdf dataset on the internet[^1]. 
 
 So I tried classifying it because it doesn't sound that hard.
 
 ## Dataset generation
 
 Lets define what classifying all of this pdfs using different labels actually
-means. For example: I wanted to tag a Linear Algebra pdf as Math or an Anatomy
-textbook as Medicine. 
+means. For example: I wanted to tag a *Linear Algebra* pdf as *Math* or an *Anatomy*
+textbook as *Medicine*. 
 
 ![Training pipeline for the embeddings model in FineWeb-Edu](./assets/fineweb_edu_pipeline.svg)
 
@@ -53,7 +57,7 @@ labels generated.
 So I decided to follow the same approach. The problem is that 8TB of data is
 still a lot of information. I don't have 8TB laying around, but we can be a bit
 more clever. The original dataset has the metadata available for download. Its
-only 8GB in size!
+only 8GB of pure text!
 
 In particular I cared about a specific column called `url`. I really care about
 the urls because they essentially tell us a lot more from a website
@@ -71,7 +75,7 @@ Introduction_to_Python_Programming_-_WEB.pdf
 
 Tells us a lot of information.
 
-I know that this url is going to be education or technology adjacent. For now,
+I know that this url is going to be *education* or *technology* adjacent. For now,
 lets just say its education because it has the "Introduction" part in its name.
 
 Here is where the bit of prompt engineering that I used enters the picture.
@@ -79,8 +83,8 @@ Here is where the bit of prompt engineering that I used enters the picture.
 ### Few shot prompting
 
 Few shot prompting is a fancy name for making an LLM learn with examples
-without training it. Its a really cool trick that you can use and makes the
-models output more coherent and consistent. I am going to give you an extremely
+without training it. Its a really cool trick that you can use to make the
+models outputs more coherent and consistent. I am going to give you an extremely
 easy example of how one of this prompts look like:
 
 ![Few Shot prompting example of an addition](./assets/few_shot_prompting.gif)
@@ -100,7 +104,7 @@ The distribution of 100k labels looks originally like this:
 So, as you can see, there is a lot of really small data points that are going
 to be extremely annoying to classify. So guess what I'm going to do? I'm going
 to ditch anything with less than 250 labels and label them as `other` just to
-keep the most frequent examples for now.   
+keep the most frequent classes.   
 
 Because this labels are unbalanced, I decided to balance them and just take 5k
 samples at the most of each possible label. This left me with a total of
@@ -121,7 +125,7 @@ I am going to introduce the idea of an embeddings model. For short, an
 embeddings model is a model capable of passing things like text, images, video
 or any other "unstructured" information to vectors in an ndimensional space
 with semantic meaning. In other words, you can have some points that are near
-each other like dog, cat, pet and this ones are going to be separated from
+each other like dog, cat, elephant and this ones are going to be separated from
 something like car, truck or vehicle.
 
 With that in mind, this models are great for generating clusters of meaning.
@@ -136,9 +140,9 @@ the first [fast.ai lecture](https://course.fast.ai/Lessons/lesson1.html) where
 they finetune a model.
 
 In the FineWeb paper, they used a total of 500k labels. Thats a lot more than
-what I currently had, but at the time, I decided to ignore this (first
-mistake). I went on with my life and decided to just start testing some models.
-And oh boy, I realized that you can do a lot with just a gaming laptop.
+what I currently had, but at the time, I decided to ignore this[^2]. I went on
+with my life and decided to just start testing some models. And oh boy, I
+realized that you can do a lot with just a gaming laptop.
 
 In FineWeb Edu they used a specific embeddings model based on the
 [snowflake-arctic-embed-m](https://huggingface.co/Snowflake/snowflake-arctic-embed-m).
@@ -154,16 +158,14 @@ model is published and you go to a Github link that has a **TODO: add the rest o
 in their README.
 
 So, I decided to try out a range of models including the base model for Stella
-called gte-1.5 and Arctic Embed. Along with others like all-mpnet-base,
-distillbert, flant-t5-small and bert-base-uncased. # TODO: make this list full.
+called gte-large-1.5 and Arctic Embed. Along with others like all-mpnet-base,
+distillbert, flant-t5-small and bert-base-uncased.
 
 Finetuning a model is pretty simple with Huggingface because it abstracts a lot
 of the code from you and thanks to just freezing the main model and training
 the embeddings and the classifier head I could run the entire thing in my
-laptop. After a series of runs, I found that for my problem the most performant
-model was `Alibaba-large-gte-1.5`, it got up to 59.14% of accuracy on all
-classes. That's not thaaat bad for a first attempt and such a low training
-dataset.
+laptop without the need of an external GPU[^3]. After a series of runs, I found that for my problem the most performant
+model was `Alibaba-large-gte-1.5`, it got up to 59.14% of accuracy.
 
 ![accuracy of different models through time](./assets/accuracy_first_experiments.png)
 
@@ -176,20 +178,6 @@ story is going to become an traditional ML story.
 
 ### Idea 2
 
-This time, I am going to reframe the problem. Do you remember that the model
-that I used in the first place was really good at generating this embeddings?
-Well, what if this embeddings could be used to train another model? This time
-the pipeline to train the model would look like the following:
-
-url (in text) -> embeddings model (gte-large 1.5) + LLM Generated labeles -> XGBoost -> predicted labels. 
-
-Another big extra from this would be that I can run a lot more experiments
-because training an XGBoost model is way faster than training an embeddings
-model. So I decided to generate all of the embeddings for the PDF links.
-Generating all of the embeddings is a total of
-[40GBs](https://www.kaggle.com/datasets/santiagopedroza/url-embeddings-cc-provenance)
-uncompressed.
-
 For those of you in the know, you could see this coming, XGBoost is THE
 undisputed king of tabular data, it currently is the state of the art. If you
 don't know the internals for XGBoost, I'm not explaining it in detail but
@@ -199,6 +187,20 @@ series of videos where they explain them in like two hours.
 
 For now, think about XGBoost as the `if else` version of AI. They are
 THE simple transparent box that classifies extremely well.
+
+This time, I am going to reframe the problem. Do you remember that the model
+that I used in the first place was really good at generating this embeddings?
+Well, what if this embeddings could be used to train another model? What if we could pass from having text to training on tabular data? This time
+the pipeline to train the model would look like the following:
+
+![xgboost training pipeline](./assets/xgb_pipeline.svg)
+
+Another big extra from this would be that I can run a lot more experiments
+because training an XGBoost model is way faster than training an embeddings
+model. So I decided to generate all of the embeddings for the PDF links.
+Generating all of the embeddings is a total of
+[40GBs](https://www.kaggle.com/datasets/santiagopedroza/url-embeddings-cc-provenance)
+uncompressed.
 
 Finally, the last change that I decided to do was to train simpler models.
 Instead of training a big classifier, it could potentially be better to just
@@ -224,11 +226,17 @@ that I had by **24.83%**.
 
 ### Idea 3
 
-But guess what? You don't actually need deep learning to generate embeddings.
-You can just split the text into smaller parts and count the occurrences of it.
-There is a this thing called TFIDF that is almost that but it has a fancier
-formula. So I decided to go full on out and just go back to the basics of NLP.
-To my surprise, the resulting models where not complete garbage! 
+But guess what? You don't actually need deep learning to generate embeddings. You can just split the text into smaller parts and count the occurrences of it. There is a this thing called TFIDF (Term Frequency-Inverse Document Frequency) that is almost that but it has a fancier formula. TFIDF is a numerical statistic that reflects how important a word is to a document in a collection. It's calculated as:
+
+```
+TFIDF(t,d,D) = TF(t,d) * IDF(t,D)
+
+Where:
+TF(t,d) = (Number of times term t appears in document d) / (Total number of terms in document d)
+IDF(t,D) = log(Total number of documents in corpus D / Number of documents containing term t)
+```
+
+This method assigns higher weights to terms that are frequent in a specific document but rare across the entire corpus, making it great for feature extraction in text analysis. So I decided to go full on out and just go back to the basics of NLP. To my surprise, the resulting models where not complete garbage!
 
 They were actually capable of predicting something that wasn't as bad as I was
 expecting:
@@ -259,7 +267,7 @@ the basics. If the point of this was actual production, I would be happy with
 this models! 
 
 But lets be real, I am just having fun in here, I don't really care about what
-is the best, I want to try new things. 
+is the best, I want to try new things and I won't let Deep Learning down.
 
 ### Idea 4
 
@@ -278,7 +286,7 @@ the bank on inference).
 I did some experiments and to not bore you I saw that the more data the better
 for my specific runs. So I decided to just do a dry run with two different
 models, this time, influenced by the [The Llama 3 Herd of
-Models](https://arxiv.org/abs/2407.21783) from Meta I used the roberta-base
+Models](https://arxiv.org/abs/2407.21783) from Meta I used the `roberta-base`
 model and the good old `gte-large` from before.
 
 `gte-large` got me a lot closer to what I was expecting with results of up to 69.22%
@@ -299,7 +307,8 @@ Here are the performances of all of our models!
 I genuinely think that it was a skill issue from my side that I was uncapable
 of making the Deep Learning model perform at the top of the performance chart.
 Anyways, for now I am just going to grab the best model which was the XGBoost
-embeddings model and really dial it in.
+embeddings model and really dial it in because I want to do other projects in
+my free time.
 
 ### Hyper Parameter Sweep
 
@@ -315,7 +324,7 @@ of its abilities.
 |XGBoost Tf-Idf|67.52%|
 |LinearRegressor Tf-Idf|70.68%|
 |gte-large naïve (400k labels)|69.22%|
-|XGBoost Embeddings HyperParameter Sweep|85.26%|
+|**XGBoost Embeddings HyperParameter Sweep**|85.26%|
 
 Now that we have some models, we can do the fun part and generate labels for
 the rest of the entire dataset!
@@ -329,14 +338,13 @@ then predicts them. The distribution of predictions looks like the following:
 
 It took roughly an hour to predict all of the pdf tags but this was because I
 didn't make it run on GPU because I forgot to set it up that way. But even then,
-I would have to say that it is not that bad!
+I would have to say that it is not that bad times wise!
 
 Finally, I wanted to generate some incredibly aesthetically pleasing pictures.
 And after doing some test runs on my local machine I decided to do some PCA and
 UMAP visualizations of a looot of points. Like, ALL of the predictions +
 embeddings. I am pretty sure this are not the biggest runs of PCA and UMAP
-because those belong to the optimized versions from NVIDIA, but its pretty
-crazy that you can run this on CPU and a loot of RAM without a problem.
+but they might be up there.
 
 For PCA I made a visualization of the entire dataset. All of the eight and a
 half million dots in a single picture:
@@ -346,6 +354,8 @@ half million dots in a single picture:
 For the classifications, it looks like this:
 
 ![PCA classification of all the points](./eda/classes/pca_visualization_8448751_samples.png)
+
+And if we decouple each class it looks like this:
 
 ![PCA classification decoupled](./eda/classes/pca_visualization_all_classes_no_na.png)
 
@@ -358,14 +368,17 @@ shows all of the might of UMAP draining the RAM.
 
 ![Chonky use of RAM](./assets/chonky_ram.jpg)
 
-So finally, for the final image, for me personally this is the show stiller:
+So finally, for the UMAP visualization, it looks like the following:
 
-![UMAP unclassified](./eda/classes/umap_visualization_6500000_samples.png)
+![UMAP unclassified](./eda/classes/umap_visualization_6500000_no_classes.png)
 
 And the classifications look like this:
 
-![UMAP classified](./eda/classes/umap_visualization_all_classes_no_na.png)
+![UMAP classified](./eda/classes/umap_visualization_6500000_samples.png)
 
+Per class plot looks like the following:
+
+![UMAP classified](./eda/classes/umap_visualization_all_classes_no_na.png)
 
 ## Conclusion
 
@@ -378,16 +391,20 @@ pretty long as it is.
 At the same time, its impressive to have gone this far. I really think that it
 is a big project that I got out this time. Considering that pdfs are a
 mixture of data and images, I think we are going to start seeing them more and
-more in training pipelines for LLMs. If you want to try another massive dataset,
-you should try MINT-1T which has a PDFs and websites with images in there!
+more in training pipelines for VLMS/Omni models. If you want to try another massive dataset,
+you should try [MINT-1T](https://arxiv.org/abs/2406.11271) which has a mixture of PDFs + websites!
 
 After all of this, I can confidently tell you that even now, I am pretty sure
 you can do a lot better and you can easily surpass this. 
 
-Thanks for reading up until here!
+That is why, I am releasing all of the datasets in this [huggingface repo](https://huggingface.co/datasets/snats/url-classifications). If
+you are just interested in the embeddings, you can find them in Kaggle right [here](https://www.kaggle.com/datasets/santiagopedroza/url-embeddings-cc-provenance). If you want to take a stab
+at the original dataset, the data card with download instructions can be found at this [s3 bucket](https://corp.digitalcorpora.org/corpora/files/CC-MAIN-2021-31-PDF-UNTRUNCATED/).
 
 ## Footnotes 
 
-[1]  The only other rival in size is
-[MINT-1T](https://arxiv.org/abs/2406.11271), but MINT-1T is a mixture of HTML +
-PDFs + Arxiv.
+[^1]  The only other rival in size is [MINT-1T](https://arxiv.org/abs/2406.11271), but MINT-1T is a mixture of HTML + PDFs + Arxiv.
+
+[^2] First mistake.
+
+[^3] If I had to do it again, I would just rent a GPU, its not worth it to train models on a laptop.
