@@ -1,0 +1,14 @@
+{
+  "name": "bbox",
+  "version": "1.0.0",
+  "description": "bounding box",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "snats",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.3.3"
+  }
+}
