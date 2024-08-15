@@ -5,7 +5,7 @@ This is the about page from my website.
 I wanted to use my logo, but in a bit more creative way.
 So I decided to train a tiny nn on my logo and display in
 real time the process. This is a super cool effect.
-Kudos to i dont remember who that tought me that.
+Kudos to i dont remember who that thought me that.
 
 Steps: 
 
@@ -20,3 +20,10 @@ are going to be what the model learns.
 3. Show the training steps over time.
 
 NOTE: THIS IS WIP.
+
+# Running
+Installing and running this is pretty simple: 
+
+```bash
+npm run dev
+```
