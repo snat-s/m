@@ -29,7 +29,7 @@ def classify_cluster(client, prompt_template, cluster_data):
     return response.choices[0].message.content
 
 def main():
-    API_KEY = "sk-600a0e3b93b14b6c93902c2c90a04fdb"
+    API_KEY = "<your-api-key>"
     BASE_URL = "https://api.deepseek.com"
     CLUSTERS_FILE = "./data/cluster_samples.json"
     PROMPT_FILE = "prompt.txt"
