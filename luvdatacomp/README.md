@@ -1,3 +1,5 @@
+# WIP
+
 Trying to translate the work from the [MiniPile
 paper](https://arxiv.org/abs/2304.08442) into other subdomains. Specifically
 this time I am trying to train a CLIP model that is better with less data.
