@@ -1,0 +1,7 @@
+.env
+models/
+data/
+datacomp.txt
+old_data/
+models/
+venv/
