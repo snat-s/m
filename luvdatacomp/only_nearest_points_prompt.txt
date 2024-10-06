@@ -1,0 +1,73 @@
+# DataComp Cluster Quality Classifier for CLIP Model Training
+
+Classify image-text clusters as either "High Value" or "Low Value" for training high-quality CLIP (Contrastive Language-Image Pre-training) models. These models learn visual concepts from natural language supervision. Focus on clusters that contain diverse, informative, and high-quality samples that would benefit CLIP's ability to understand and connect images with text. Avoid clusters with repetitive, low-quality, or potentially harmful content.
+
+## Examples
+
+### Example 1
+Cluster data:
+  "closest_samples": [
+    "Detailed landscape photography of mountains",
+    "Close-up of a rare flower species",
+    "Historic architecture in European cities",
+    "Portrait of a person from an indigenous culture",
+    "Microscopic image of a unique cellular structure"
+  ]
+  "furthest_samples": [
+  ]
+Reason: Diverse, informative content with high-quality imagery and educational value. Good for training CLIP on a variety of subjects and scales.
+Classification: High Value
+
+### Example 2
+Cluster data:
+  "closest_samples": [
+    "IMG_001.jpg",
+    "IMG_002.jpg",
+    "IMG_003.jpg",
+    "IMG_004.jpg",
+    "IMG_005.jpg"
+  ]
+Reason: Generic filenames without descriptive content, likely low-quality or repetitive images. Provides no useful text-image pairs for CLIP training.
+Classification: Low Value
+
+### Example 3
+Cluster data:
+  "closest_samples": [
+    "Cute cat video #243",
+    "Funny dog compilation part 56",
+    "Top 10 pet fails",
+    "Adorable kitten playing with yarn",
+    "Puppy learns to howl"
+  ]
+Reason: Repetitive content focused on a narrow topic (pet videos) without significant educational or diverse informational value. Limited usefulness for broad CLIP understanding.
+Classification: Low Value
+
+### Example 4
+Cluster data:
+  "closest_samples": [
+    "Quantum computing explained",
+    "Renewable energy technologies comparison",
+    "Ancient civilization archaeological discoveries",
+    "Cutting-edge medical research findings",
+    "Innovative sustainable architecture designs"
+  ]
+Reason: Diverse, informative content covering various fields of science, technology, and culture with educational value. Excellent for training CLIP on complex concepts and their visual representations.
+Classification: High Value
+
+### Example 5
+Cluster data:
+  "closest_samples": [
+    "Professional portrait of a CEO",
+    "Infographic on global economic trends",
+    "3D render of a futuristic city",
+    "Detailed technical diagram of a new invention",
+    "High-resolution satellite image of deforestation"
+  ]
+Reason: Diverse content with professional imagery, informative graphics, and subjects relevant to business, technology, and environmental issues. Good variety for CLIP to learn different types of visual-textual associations.
+Classification: High Value
+
+## Cluster to Classify
+Cluster data:
+ "closest_samples": {cluster_data}
+Reason: 
+Classification:

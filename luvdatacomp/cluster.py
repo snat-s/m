@@ -39,17 +39,16 @@ def cluster_partial_fit(files, n_clusters=128):
     
     for file in tqdm(files, desc="Clustering"):
         data = np.load(file)
-        #embeddings = data['l14_txt']
-        embeddings_txt = data['l14_txt']
-        embeddings_img = data['l14_img']
-        embeddings = np.concatenate((embeddings_txt, embeddings_img), axis=1)
+        embeddings = data['l14_txt']
+        #embeddings_txt = data['l14_txt']
+        #embeddings_img = data['l14_img']
+        #embeddings = np.concatenate((embeddings_txt, embeddings_img), axis=1)
         
         kmeans.partial_fit(embeddings)
         
         del data, embeddings
         gc.collect()
     
-    #print(f"{kmeans.inertia_=}")
     return kmeans
 
 def sample_from_clusters(kmeans, files, parquet_files, output_classification_path, n_samples=5):
@@ -237,7 +236,6 @@ def cluster(path, output_classification_path, output_sample_path, is_self_superv
         print(f"Cluster samples have been saved to {output_sample_path}")
     else:
         all_distances = self_supervised_prototypes_pruning(kmeans, embeddings_files, metadata_files, 1300)
-
         fractions = np.arange(0.1, 1.0, 0.1)
         save_pruned_datasets(all_distances, fractions, output_classification_path)
 

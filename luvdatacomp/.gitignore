@@ -5,3 +5,6 @@ datacomp.txt
 old_data/
 models/
 venv/
+.ignore/
+config.json
+__pycache__/
