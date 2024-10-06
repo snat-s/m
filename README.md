@@ -1,7 +1,7 @@
 # M
 
 This is my Monorepo for teMporary projects or projects
-that are simple enough that they don't deserver their own
+that are simple enough that they don't deserve their own
 repository.
 
 Sometimes I graduate projects from this repo to other ones.
