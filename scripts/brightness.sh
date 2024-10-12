@@ -16,6 +16,7 @@ case $ACTION in
     if (( $(echo "$NEW_BRIGHTNESS > 1" | bc -l) )); then
       NEW_BRIGHTNESS=1
     fi
+    action_msg="Brightness Up"
     ;;
   decrease)
     # Decrease the brightness
@@ -23,6 +24,7 @@ case $ACTION in
     if (( $(echo "$NEW_BRIGHTNESS < 0" | bc -l) )); then
       NEW_BRIGHTNESS=0
     fi
+    action_msg="Brightness Down"
     ;;
   *)
     echo "Invalid action. Use 'increase' or 'decrease'."
@@ -32,5 +34,11 @@ esac
 
 # Set the new brightness level
 xrandr --output $(xrandr | grep " connected" | cut -d" " -f1) --brightness $NEW_BRIGHTNESS
+
+# Convert brightness to percentage for notification
+BRIGHTNESS_PERCENT=$(echo "$NEW_BRIGHTNESS * 100" | bc | cut -d. -f1)
+
+# Display a notification with the current brightness
+notify-send "$action_msg" "Current brightness: $BRIGHTNESS_PERCENT%" -h int:value:$BRIGHTNESS_PERCENT -h string:synchronous:brightness -i none
 
 echo "Brightness adjusted to $NEW_BRIGHTNESS"
