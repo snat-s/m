@@ -14,7 +14,7 @@ or Rust on this.
   </tr>
   <tr>
     <td><img src="image.jpeg" width="200"></td>
-    <td><img src="output.jpg" width="200"></td>
+    <td><img src="ditheridu.jpg" width="200"></td>
   </tr>
 </table>
 
