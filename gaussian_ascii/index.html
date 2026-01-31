@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Gaussian Splatting</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        h1 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            letter-spacing: 2px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        #ascii-output {
+            font-size: 6px;
+            line-height: 6px;
+            letter-spacing: 1px;
+            white-space: pre;
+            text-shadow: 0 0 3px currentColor;
+            background: #050505;
+            padding: 10px;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+        }
+        canvas {
+            display: none;
+        }
+        .controls {
+            background: #111;
+            padding: 15px;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .controls label {
+            display: block;
+            margin: 8px 0 4px;
+            color: #00aa00;
+        }
+        .controls input[type="range"] {
+            width: 120px;
+            accent-color: #00ff00;
+        }
+        .controls select {
+            background: #0a0a0a;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 4px;
+            width: 120px;
+        }
+        .info {
+            font-size: 10px;
+            color: #006600;
+            margin-top: 10px;
+        }
+        .mode-btn {
+            background: #0a0a0a;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 6px 12px;
+            margin: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+        }
+        .mode-btn:hover, .mode-btn.active {
+            background: #00ff00;
+            color: #0a0a0a;
+        }
+    </style>
+</head>
+<body>
+    <h1>// ASCII GAUSSIAN SPLATTING //</h1>
+    <div class="container">
+        <div id="ascii-output"></div>
+        <canvas id="gl-canvas"></canvas>
+        <div class="controls">
+            <div>
+                <button class="mode-btn active" data-mode="splat">SPLAT</button>
+                <button class="mode-btn" data-mode="torus">TORUS</button>
+                <button class="mode-btn" data-mode="cube">CUBE</button>
+            </div>
+            <label>Rotation Speed</label>
+            <input type="range" id="speed" min="0" max="100" value="30">
+            <label>Splat Size</label>
+            <input type="range" id="splat-size" min="5" max="50" value="20">
+            <label>Point Count</label>
+            <input type="range" id="point-count" min="50" max="500" value="200">
+            <label>Color Mode</label>
+            <select id="color-mode">
+                <option value="green">Matrix Green</option>
+                <option value="amber">Amber CRT</option>
+                <option value="cyan">Cyan Glow</option>
+                <option value="white">White</option>
+                <option value="rainbow">Rainbow</option>
+            </select>
+            <label>ASCII Set</label>
+            <select id="ascii-set">
+                <option value="standard">Standard</option>
+                <option value="blocks">Blocks</option>
+                <option value="binary">Binary</option>
+                <option value="dots">Dots</option>
+            </select>
+            <div class="info">
+                Drag to rotate<br>
+                Scroll to zoom
+            </div>
+        </div>
+    </div>
+
+    <script>
+const ASCII_SETS = {
+    standard: ' .:-=+*#%@',
+    blocks: ' ░▒▓█',
+    binary: ' 01',
+    dots: ' ·•●',
+};
+
+const COLORS = {
+    green: '#00ff00',
+    amber: '#ffaa00',
+    cyan: '#00ffff',
+    white: '#ffffff',
+    rainbow: null
+};
+
+const WIDTH = 120;
+const HEIGHT = 60;
+
+class GaussianSplatter {
+    constructor() {
+        this.canvas = document.getElementById('gl-canvas');
+        this.canvas.width = WIDTH;
+        this.canvas.height = HEIGHT;
+        this.ctx = this.canvas.getContext('2d');
+        this.output = document.getElementById('ascii-output');
+
+        this.points = [];
+        this.rotationX = 0;
+        this.rotationY = 0;
+        this.zoom = 2.5;
+        this.autoRotate = true;
+        this.speed = 0.3;
+        this.splatSize = 20;
+        this.mode = 'splat';
+        this.colorMode = 'green';
+        this.asciiSet = 'standard';
+
+        this.isDragging = false;
+        this.lastMouse = { x: 0, y: 0 };
+
+        this.generatePoints();
+        this.setupControls();
+        this.animate();
+    }
+
+    generatePoints() {
+        this.points = [];
+        const count = parseInt(document.getElementById('point-count').value);
+
+        if (this.mode === 'splat') {
+            // Random 3D gaussian cloud
+            for (let i = 0; i < count; i++) {
+                this.points.push({
+                    x: this.gaussianRandom() * 0.8,
+                    y: this.gaussianRandom() * 0.8,
+                    z: this.gaussianRandom() * 0.8,
+                    size: 0.05 + Math.random() * 0.1,
+                    color: Math.random()
+                });
+            }
+        } else if (this.mode === 'torus') {
+            // Torus shape
+            for (let i = 0; i < count; i++) {
+                const u = Math.random() * Math.PI * 2;
+                const v = Math.random() * Math.PI * 2;
+                const R = 0.6, r = 0.25;
+                this.points.push({
+                    x: (R + r * Math.cos(v)) * Math.cos(u),
+                    y: (R + r * Math.cos(v)) * Math.sin(u),
+                    z: r * Math.sin(v),
+                    size: 0.04 + Math.random() * 0.06,
+                    color: u / (Math.PI * 2)
+                });
+            }
+        } else if (this.mode === 'cube') {
+            // Cube wireframe with gaussian spread
+            const edges = [
+                // Bottom face
+                [[-1,-1,-1], [1,-1,-1]], [[-1,-1,-1], [-1,1,-1]],
+                [[1,1,-1], [1,-1,-1]], [[1,1,-1], [-1,1,-1]],
+                // Top face
+                [[-1,-1,1], [1,-1,1]], [[-1,-1,1], [-1,1,1]],
+                [[1,1,1], [1,-1,1]], [[1,1,1], [-1,1,1]],
+                // Verticals
+                [[-1,-1,-1], [-1,-1,1]], [[1,-1,-1], [1,-1,1]],
+                [[-1,1,-1], [-1,1,1]], [[1,1,-1], [1,1,1]]
+            ];
+            const pointsPerEdge = Math.floor(count / edges.length);
+            edges.forEach((edge, edgeIdx) => {
+                for (let i = 0; i < pointsPerEdge; i++) {
+                    const t = i / pointsPerEdge;
+                    const spread = 0.05;
+                    this.points.push({
+                        x: (edge[0][0] + (edge[1][0] - edge[0][0]) * t) * 0.5 + this.gaussianRandom() * spread,
+                        y: (edge[0][1] + (edge[1][1] - edge[0][1]) * t) * 0.5 + this.gaussianRandom() * spread,
+                        z: (edge[0][2] + (edge[1][2] - edge[0][2]) * t) * 0.5 + this.gaussianRandom() * spread,
+                        size: 0.03 + Math.random() * 0.05,
+                        color: edgeIdx / edges.length
+                    });
+                }
+            });
+        }
+    }
+
+    gaussianRandom() {
+        let u = 0, v = 0;
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v) * 0.3;
+    }
+
+    setupControls() {
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.mode = btn.dataset.mode;
+                this.generatePoints();
+            });
+        });
+
+        document.getElementById('speed').addEventListener('input', (e) => {
+            this.speed = e.target.value / 100;
+        });
+
+        document.getElementById('splat-size').addEventListener('input', (e) => {
+            this.splatSize = parseInt(e.target.value);
+        });
+
+        document.getElementById('point-count').addEventListener('input', () => {
+            this.generatePoints();
+        });
+
+        document.getElementById('color-mode').addEventListener('change', (e) => {
+            this.colorMode = e.target.value;
+            this.updateColor();
+        });
+
+        document.getElementById('ascii-set').addEventListener('change', (e) => {
+            this.asciiSet = e.target.value;
+        });
+
+        // Mouse controls
+        this.output.addEventListener('mousedown', (e) => {
+            this.isDragging = true;
+            this.lastMouse = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (this.isDragging) {
+                const dx = e.clientX - this.lastMouse.x;
+                const dy = e.clientY - this.lastMouse.y;
+                this.rotationY += dx * 0.01;
+                this.rotationX += dy * 0.01;
+                this.lastMouse = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            this.isDragging = false;
+        });
+
+        this.output.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            this.zoom = Math.max(1, Math.min(5, this.zoom - e.deltaY * 0.001));
+        });
+    }
+
+    updateColor() {
+        const color = COLORS[this.colorMode];
+        if (color) {
+            this.output.style.color = color;
+            this.output.style.textShadow = `0 0 3px ${color}`;
+        }
+    }
+
+    project(point) {
+        // Rotate around X axis
+        let y = point.y * Math.cos(this.rotationX) - point.z * Math.sin(this.rotationX);
+        let z = point.y * Math.sin(this.rotationX) + point.z * Math.cos(this.rotationX);
+
+        // Rotate around Y axis
+        let x = point.x * Math.cos(this.rotationY) + z * Math.sin(this.rotationY);
+        z = -point.x * Math.sin(this.rotationY) + z * Math.cos(this.rotationY);
+
+        // Perspective projection
+        const fov = 2;
+        const scale = fov / (fov + z + 2);
+
+        return {
+            x: WIDTH / 2 + x * WIDTH * 0.4 * this.zoom * scale,
+            y: HEIGHT / 2 + y * HEIGHT * 0.4 * this.zoom * scale,
+            z: z,
+            size: point.size * this.splatSize * scale,
+            color: point.color
+        };
+    }
+
+    renderGaussian(ctx, x, y, size, intensity) {
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${intensity})`);
+        gradient.addColorStop(0.5, `rgba(255, 255, 255, ${intensity * 0.5})`);
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    render() {
+        // Clear canvas
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        // Project and sort points by depth
+        const projected = this.points.map(p => this.project(p));
+        projected.sort((a, b) => b.z - a.z);
+
+        // Render gaussians
+        projected.forEach(p => {
+            const intensity = Math.max(0.1, Math.min(1, 1 - (p.z + 1) * 0.3));
+            this.renderGaussian(this.ctx, p.x, p.y, p.size, intensity);
+        });
+
+        // Convert to ASCII
+        const imageData = this.ctx.getImageData(0, 0, WIDTH, HEIGHT);
+        const chars = ASCII_SETS[this.asciiSet];
+        let ascii = '';
+
+        for (let y = 0; y < HEIGHT; y++) {
+            for (let x = 0; x < WIDTH; x++) {
+                const idx = (y * WIDTH + x) * 4;
+                const brightness = imageData.data[idx] / 255;
+                const charIdx = Math.floor(brightness * (chars.length - 1));
+
+                if (this.colorMode === 'rainbow' && brightness > 0.1) {
+                    // Rainbow color based on position and time
+                    const hue = (x / WIDTH * 360 + this.rotationY * 50) % 360;
+                    ascii += `<span style="color: hsl(${hue}, 100%, ${50 + brightness * 30}%)">${chars[charIdx]}</span>`;
+                } else {
+                    ascii += chars[charIdx];
+                }
+            }
+            ascii += '\n';
+        }
+
+        if (this.colorMode === 'rainbow') {
+            this.output.innerHTML = ascii;
+        } else {
+            this.output.textContent = ascii;
+        }
+    }
+
+    animate() {
+        if (!this.isDragging) {
+            this.rotationY += this.speed * 0.05;
+            this.rotationX += this.speed * 0.02;
+        }
+
+        this.render();
+        requestAnimationFrame(() => this.animate());
+    }
+}
+
+// Initialize
+new GaussianSplatter();
+    </script>
+</body>
+</html>
