@@ -1,0 +1,6 @@
+mss>=9.0.0
+Pillow>=10.0.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+anthropic>=0.39.0
+pynput>=1.7.6
