@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "binary-cnn"
+version = "0.1.0"
+description = "Tiny CNN experiments on adjacent-byte histograms"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "pillow>=10.0",
+  "torch>=2.2",
+  "torchvision>=0.17",
+]
+
+[project.scripts]
+binary-histogram = "binary_cnn.histogram:main"
+binary-generate = "binary_cnn.synthetic:main"
+binary-collect = "binary_cnn.collect:main"
+binary-expand = "binary_cnn.expand:main"
+binary-benchmark = "binary_cnn.benchmark:main"
+binary-train = "binary_cnn.train:main"
+binary-predict = "binary_cnn.predict:main"
+binary-visualize = "binary_cnn.visualize:main"
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/binary_cnn"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
